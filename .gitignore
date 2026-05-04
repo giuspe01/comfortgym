@@ -1,0 +1,35 @@
+# Eseguibili e binari
+*.exe
+*.out
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+
+# Cartelle di build
+build/
+bin/
+obj/
+
+# Database (i file dati locali)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# File temporanei di sistema
+*~
+*.bak
+*.tmp
+*.log
