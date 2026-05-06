@@ -5,12 +5,24 @@
 
 #include "httplib.h"
 
+#include "persistenza/Database.h"
+
 // Indirizzo e porta su cui il server resta in ascolto.
 // "0.0.0.0" significa "ascolta su qualsiasi interfaccia di rete".
 const char* INDIRIZZO = "0.0.0.0";
 const int PORTA = 8080;
 
+// Percorso del file SQLite. La cartella 'data' deve esistere.
+const char* PERCORSO_DB = "data/palestra.db";
+
 int main() {
+    // Apertura del database (e creazione automatica dello schema se serve).
+    if (!apriDatabase(PERCORSO_DB)) {
+        fprintf(stderr, "Impossibile aprire il database. Esco.\n");
+        return 1;
+    }
+    printf("Database aperto: %s\n", PERCORSO_DB);
+
     httplib::Server server;
 
     // I blocchi [](...) { ... } qui sotto sono "lambda": funzioni anonime
@@ -35,7 +47,10 @@ int main() {
 
     if (!server.listen(INDIRIZZO, PORTA)) {
         fprintf(stderr, "Errore: impossibile avviare il server sulla porta %d.\n", PORTA);
+        chiudiDatabase();
         return 1;
     }
+
+    chiudiDatabase();
     return 0;
 }
