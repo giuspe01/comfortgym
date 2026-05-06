@@ -33,3 +33,6 @@ Thumbs.db
 *.bak
 *.tmp
 *.log
+
+# Materiali di studio privati (non parte della consegna)
+appunti/
