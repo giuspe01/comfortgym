@@ -19,8 +19,7 @@ int leggiCorpoJson(const httplib::Request& req,
                    httplib::Response& res,
                    nlohmann::json& destinazione) {
     // nlohmann::json::parse lancia un'eccezione se la stringa non e' un JSON
-    // valido. La intercettiamo qui, in modo che il resto del codice possa
-    // ragionare solo con il caso "JSON ok".
+    // valido.
     try {
         destinazione = nlohmann::json::parse(req.body);
         return 1;

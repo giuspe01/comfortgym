@@ -19,8 +19,7 @@ int validaUsername(const char* username) {
         return 0;
     }
     // Scorriamo tutti i caratteri e accettiamo solo lettere, numeri e '_'.
-    // isalnum richiede un input "unsigned char" per evitare sorprese coi
-    // caratteri accentati: facciamo il cast per sicurezza.
+    // per evitare sorprese caratteri accentati: facciamo il cast per sicurezza.
     for (int i = 0; username[i] != '\0'; i++) {
         char c = username[i];
         if (!isalnum((unsigned char)c) && c != '_') {
