@@ -50,6 +50,32 @@ function mostraMessaggio(testo, tipo) {
 // Nasconde il riquadro dei messaggi.
 function nascondiMessaggio() {
     const div = document.getElementById("messaggio");
+    if (!div) return;
     div.textContent = "";
     div.className = "alert d-none";
+}
+
+// Chiama /api/me. Se non sei autenticato, redirect a "/".
+// Se 'ruoloAtteso' e' indicato e l'utente ha un altro ruolo, redirect alla
+// dashboard giusta. Ritorna l'oggetto utente o null se e' avvenuto un redirect.
+async function richiediUtente(ruoloAtteso) {
+    const r = await apiGet("/api/me");
+    if (!r.ok) {
+        window.location.href = "/";
+        return null;
+    }
+    const utente = r.dati.utente;
+    if (ruoloAtteso && utente.tipo !== ruoloAtteso) {
+        window.location.href = (utente.tipo === "cliente")
+            ? "/cliente.html"
+            : "/professionista.html";
+        return null;
+    }
+    return utente;
+}
+
+// Esegue il logout e torna alla home.
+async function logout() {
+    await apiPost("/api/auth/logout", {});
+    window.location.href = "/";
 }

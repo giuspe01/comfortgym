@@ -1,10 +1,16 @@
-// auth.js - Gestione della pagina di accesso e registrazione.
+// auth.js - Pagina di accesso/registrazione.
 //
-// Cosa fa:
-//   1. mostraForm(quale): mostra il form 'accedi' o 'registrati' nascondendo
-//      l'altro.
-//   2. Aggancia i submit dei due form alle rotte /api/auth/login e
-//      /api/auth/register del backend.
+// Se l'utente e' gia' loggato, redirect alla dashboard.
+// Altrimenti: toggle dei due form e submit verso /api/auth/...
+
+// Se c'e' gia' una sessione valida, salta direttamente alla dashboard.
+window.addEventListener("DOMContentLoaded", async function () {
+    const r = await apiGet("/api/me");
+    if (r.ok && r.dati.utente) {
+        const tipo = r.dati.utente.tipo;
+        window.location.href = (tipo === "cliente") ? "/cliente.html" : "/professionista.html";
+    }
+});
 
 // Mostra solo uno dei due form, nasconde l'altro.
 // Aggiorna anche lo stile dei bottoni in alto (quale tab e' attiva).
