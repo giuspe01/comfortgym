@@ -25,49 +25,162 @@
 
     <h1 class="h3 mb-4">Area professionista</h1>
 
+    <!-- Lista programmi creati -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0">Programmi creati</h2>
+                <button id="btnNuovoProgramma" type="button" class="btn btn-sm btn-primary">
+                    Nuovo programma
+                </button>
+            </div>
+            <div id="elencoProgrammi">
+                <p class="text-muted">Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form crea/modifica programma -->
+    <div id="cardFormProgramma" class="card mb-3 d-none">
+        <div class="card-body">
+            <h2 class="h5 mb-3" id="titoloFormProgramma">Nuovo programma</h2>
+            <form id="formProgramma">
+                <input type="hidden" id="idProgramma" value="">
+
+                <div class="mb-3">
+                    <label for="nomeProgramma" class="form-label">Nome</label>
+                    <input type="text" id="nomeProgramma" class="form-control" required minlength="2" maxlength="100">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="obiettivoProgramma" class="form-label">Obiettivo</label>
+                        <select id="obiettivoProgramma" class="form-select" required>
+                            <option value="perdita_peso">Perdita peso</option>
+                            <option value="massa">Massa</option>
+                            <option value="mantenimento">Mantenimento</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="difficoltaProgramma" class="form-label">Difficolta'</label>
+                        <select id="difficoltaProgramma" class="form-select" required>
+                            <option value="principiante">Principiante</option>
+                            <option value="intermedio">Intermedio</option>
+                            <option value="avanzato">Avanzato</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="durataProgramma" class="form-label">Durata (settimane)</label>
+                        <input type="number" id="durataProgramma" class="form-control" min="1" max="52" required>
+                    </div>
+                </div>
+
+                <h3 class="h6 mt-3">Esercizi</h3>
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th style="width: 80px">Serie</th>
+                            <th style="width: 100px">Ripetizioni</th>
+                            <th style="width: 100px">Riposo (s)</th>
+                            <th>Note</th>
+                            <th style="width: 60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="righeEsercizi"></tbody>
+                </table>
+                <button type="button" id="btnAggiungiEsercizio" class="btn btn-sm btn-outline-primary mb-3">
+                    + Aggiungi esercizio
+                </button>
+
+                <div id="messaggioFormProgramma" class="alert d-none"></div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" id="btnAnnullaProgramma" class="btn btn-outline-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista piani nutrizionali creati -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0">Piani nutrizionali creati</h2>
+                <button id="btnNuovoPiano" type="button" class="btn btn-sm btn-primary">
+                    Nuovo piano
+                </button>
+            </div>
+            <div id="elencoPiani">
+                <p class="text-muted">Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form crea/modifica piano -->
+    <div id="cardFormPiano" class="card mb-3 d-none">
+        <div class="card-body">
+            <h2 class="h5 mb-3" id="titoloFormPiano">Nuovo piano</h2>
+            <form id="formPiano">
+                <input type="hidden" id="idPiano" value="">
+
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label for="nomePiano" class="form-label">Nome</label>
+                        <input type="text" id="nomePiano" class="form-control" required minlength="2" maxlength="100">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="caloriePiano" class="form-label">Calorie giornaliere</label>
+                        <input type="number" id="caloriePiano" class="form-control" min="500" max="6000" required>
+                    </div>
+                </div>
+
+                <h3 class="h6 mt-3">Pasti</h3>
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 140px">Tipo</th>
+                            <th>Descrizione</th>
+                            <th style="width: 100px">Calorie</th>
+                            <th style="width: 60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="righePasti"></tbody>
+                </table>
+                <button type="button" id="btnAggiungiPasto" class="btn btn-sm btn-outline-primary mb-3">
+                    + Aggiungi pasto
+                </button>
+
+                <div id="messaggioFormPiano" class="alert d-none"></div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" id="btnAnnullaPiano" class="btn btn-outline-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="row g-3">
-
-        <!-- Programmi creati -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h5">Programmi creati</h2>
-                    <p class="text-muted mb-0" id="riepilogoProgrammi">In arrivo.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Piani creati -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h5">Piani nutrizionali creati</h2>
-                    <p class="text-muted mb-0" id="riepilogoPiani">In arrivo.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Clienti seguiti -->
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-body">
                     <h2 class="h5">Clienti seguiti</h2>
-                    <p class="text-muted mb-0" id="riepilogoClienti">In arrivo.</p>
+                    <p class="text-muted mb-0">In arrivo.</p>
                 </div>
             </div>
         </div>
-
-        <!-- Feedback ricevuti -->
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-body">
                     <h2 class="h5">Feedback ricevuti</h2>
-                    <p class="text-muted mb-0" id="riepilogoFeedback">In arrivo.</p>
+                    <p class="text-muted mb-0">In arrivo.</p>
                 </div>
             </div>
         </div>
-
     </div>
+
 </div>
 
 <script src="js/api.js"></script>

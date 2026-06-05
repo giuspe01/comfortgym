@@ -10,7 +10,6 @@
 </head>
 <body class="bg-light">
 
-<!-- Barra in alto: nome utente + logout -->
 <nav class="navbar navbar-expand bg-white border-bottom px-4">
     <span class="navbar-brand">Palestra digitale</span>
     <span class="ms-auto me-3 text-muted">
@@ -25,49 +24,94 @@
 
     <h1 class="h3 mb-4">Area cliente</h1>
 
-    <div class="row g-3">
-
-        <!-- Programma corrente -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h5">Il mio programma</h2>
-                    <p class="text-muted mb-0" id="riepilogoProgramma">In arrivo.</p>
-                </div>
+    <!-- Programma corrente -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Il mio programma</h2>
+            <div id="contenutoProgrammaCorrente">
+                <p class="text-muted mb-0">Caricamento...</p>
             </div>
         </div>
-
-        <!-- Piano nutrizionale -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h5">Piano nutrizionale</h2>
-                    <p class="text-muted mb-0" id="riepilogoPiano">In arrivo.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Storico sessioni -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h5">Le mie sessioni</h2>
-                    <p class="text-muted mb-0" id="riepilogoSessioni">In arrivo.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Catalogo programmi -->
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h5">Catalogo programmi</h2>
-                    <p class="text-muted mb-0" id="riepilogoCatalogo">In arrivo.</p>
-                </div>
-            </div>
-        </div>
-
     </div>
+
+    <!-- Piano nutrizionale corrente -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Il mio piano nutrizionale</h2>
+            <div id="contenutoPianoCorrente">
+                <p class="text-muted mb-0">Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sessioni placeholder -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5">Le mie sessioni</h2>
+            <p class="text-muted mb-0">In arrivo.</p>
+        </div>
+    </div>
+
+    <!-- Catalogo programmi -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Catalogo programmi</h2>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">Obiettivo</label>
+                    <select id="filtroObiettivo" class="form-select form-select-sm">
+                        <option value="">Tutti</option>
+                        <option value="perdita_peso">Perdita peso</option>
+                        <option value="massa">Massa</option>
+                        <option value="mantenimento">Mantenimento</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">Difficolta'</label>
+                    <select id="filtroDifficolta" class="form-select form-select-sm">
+                        <option value="">Tutte</option>
+                        <option value="principiante">Principiante</option>
+                        <option value="intermedio">Intermedio</option>
+                        <option value="avanzato">Avanzato</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">Durata max (settimane)</label>
+                    <input type="number" id="filtroDurataMax" class="form-control form-control-sm" min="1">
+                </div>
+            </div>
+            <button id="btnApplicaFiltri" type="button" class="btn btn-sm btn-secondary mb-3">
+                Filtra
+            </button>
+
+            <div id="elencoCatalogo">
+                <p class="text-muted">Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catalogo piani nutrizionali -->
+    <div class="card">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Catalogo piani nutrizionali</h2>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">Calorie max</label>
+                    <input type="number" id="filtroCalorieMax" class="form-control form-control-sm" min="500">
+                </div>
+            </div>
+            <button id="btnApplicaFiltriPiani" type="button" class="btn btn-sm btn-secondary mb-3">
+                Filtra
+            </button>
+
+            <div id="elencoCatalogoPiani">
+                <p class="text-muted">Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="js/api.js"></script>

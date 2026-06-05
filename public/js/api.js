@@ -38,6 +38,28 @@ async function apiGet(percorso) {
     return { ok: risposta.ok, status: risposta.status, dati: corpo };
 }
 
+// PUT con corpo JSON (per le modifiche).
+async function apiPut(percorso, dati) {
+    const risposta = await fetch(percorso, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dati),
+        credentials: "same-origin"
+    });
+    const corpo = await risposta.json();
+    return { ok: risposta.ok, status: risposta.status, dati: corpo };
+}
+
+// DELETE senza corpo.
+async function apiDelete(percorso) {
+    const risposta = await fetch(percorso, {
+        method: "DELETE",
+        credentials: "same-origin"
+    });
+    const corpo = await risposta.json();
+    return { ok: risposta.ok, status: risposta.status, dati: corpo };
+}
+
 // Mostra un messaggio nel riquadro #messaggio della pagina.
 // 'tipo' puo' essere 'success', 'danger', 'warning', 'info'
 // (corrispondono alle classi alert-* di Bootstrap).
