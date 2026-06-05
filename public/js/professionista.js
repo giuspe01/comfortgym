@@ -26,6 +26,8 @@ window.addEventListener("DOMContentLoaded", async function () {
 
     await caricaProgrammi();
     await caricaPiani();
+    await caricaAttivita();
+    await caricaFeedback();
 });
 
 // =================== PROGRAMMI ===================
@@ -310,6 +312,81 @@ async function eliminaPiano(id) {
     const r = await apiDelete("/api/piani/" + id);
     if (!r.ok) { alert(r.dati.errore || "Errore eliminazione"); return; }
     await caricaPiani();
+}
+
+// =================== ATTIVITA' ===================
+
+async function caricaAttivita() {
+    const cont = document.getElementById("elencoAttivita");
+    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
+
+    const r = await apiGet("/api/professionista/attivita");
+    if (!r.ok) {
+        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
+        return;
+    }
+
+    const righe = r.dati.attivita;
+    if (righe.length === 0) {
+        cont.innerHTML = '<p class="text-muted mb-0">Nessun programma creato.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-sm align-middle">';
+    html += '<thead><tr><th>Programma</th><th class="text-end">Sessioni totali</th><th class="text-end">Completate</th><th class="text-end">Adesione</th><th>Ultima sessione</th></tr></thead><tbody>';
+    for (const r of righe) {
+        const adesione = (r.totale > 0)
+            ? Math.round((r.completate / r.totale) * 100) + "%"
+            : "-";
+        html += '<tr>';
+        html += '<td>' + escapeHtml(r.nomeProgramma) + '</td>';
+        html += '<td class="text-end">' + r.totale + '</td>';
+        html += '<td class="text-end">' + r.completate + '</td>';
+        html += '<td class="text-end">' + adesione + '</td>';
+        html += '<td>' + escapeHtml(r.ultimaData || "—") + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+}
+
+// =================== FEEDBACK ===================
+
+async function caricaFeedback() {
+    const cont = document.getElementById("elencoFeedback");
+    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
+
+    const r = await apiGet("/api/professionista/feedback");
+    if (!r.ok) {
+        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
+        return;
+    }
+
+    const elenco = r.dati.feedback;
+    if (elenco.length === 0) {
+        cont.innerHTML = '<p class="text-muted mb-0">Nessun feedback ricevuto.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-sm align-middle">';
+    html += '<thead><tr><th>Programma</th><th>Cliente</th><th>Voto</th><th>Commento</th><th>Data</th></tr></thead><tbody>';
+    for (const f of elenco) {
+        html += '<tr>';
+        html += '<td>' + escapeHtml(f.nomeProgramma) + '</td>';
+        html += '<td>' + escapeHtml(f.nomeCliente) + '</td>';
+        html += '<td>' + stelle(f.voto) + '</td>';
+        html += '<td>' + escapeHtml(f.commento || "") + '</td>';
+        html += '<td>' + escapeHtml(f.data) + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+}
+
+function stelle(voto) {
+    let s = "";
+    for (let i = 1; i <= 5; i++) s += (i <= voto) ? "★" : "☆";
+    return s;
 }
 
 // ----- Helper messaggi e escaping -----

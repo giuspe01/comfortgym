@@ -11,6 +11,8 @@
 #include "controller/AuthController.h"
 #include "controller/ProgrammiController.h"
 #include "controller/PianiController.h"
+#include "controller/SessioniController.h"
+#include "controller/FeedbackController.h"
 
 // Indirizzo e porta su cui il server resta in ascolto.
 // "0.0.0.0" significa "ascolta su qualsiasi interfaccia di rete".
@@ -57,6 +59,12 @@ int main() {
 
     // Rotte dei piani nutrizionali.
     registraRottePiani(server);
+
+    // Rotte delle sessioni di allenamento.
+    registraRotteSessioni(server);
+
+    // Rotte dei feedback.
+    registraRotteFeedback(server);
 
     printf("Palestra digitale - server in ascolto su http://localhost:%d\n", PORTA);
     printf("Premi Ctrl+C per terminare.\n");
