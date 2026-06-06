@@ -1,4 +1,4 @@
-// Palestra digitale - entry point del backend.
+// Comfortgym - entry point del backend.
 // Caso di studio ITPS, traccia 2.
 
 #include <cstdio>
@@ -77,7 +77,7 @@ int main() {
     // Rotta per l'upload di immagini.
     registraRotteUpload(server);
 
-    printf("Palestra digitale - server in ascolto su http://localhost:%d\n", PORTA);
+    printf("Comfortgym - server in ascolto su http://localhost:%d\n", PORTA);
     printf("Premi Ctrl+C per terminare.\n");
 
     if (!server.listen(INDIRIZZO, PORTA)) {

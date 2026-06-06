@@ -1,12 +1,12 @@
-# Palestra Digitale
+# Comfortgym
 
 Piattaforma web completa per la gestione di programmi di allenamento e piani nutrizionali, pensata per trainer e nutrizionisti che vogliono monitorare i progressi dei loro clienti online.
 
-**Caso di studio** del corso ITPS (Ingegneria del Testing, dei Processi e del Software) — Università degli Studi di Bari, A.A. 2025-2026.
+**Caso di studio Palestra Digitale** del corso ITPS — Università degli Studi di Bari, A.A. 2025-2026.
 
 ## Descrizione del progetto
 
-"Palestra Digitale" è una soluzione end-to-end che permette a:
+"Comfortgym" è una soluzione end-to-end che permette a:
 
 - **Clienti**: selezionare programmi di allenamento e piani nutrizionali, registrare sessioni di allenamento e aderenze giornaliere, lasciare feedback, consultare consigli personalizzati.
 - **Professionisti** (Trainer e Nutrizionisti): creare e gestire contenuti, visualizzare statistiche di attività dei clienti, leggere feedback, aggiungere consigli personalizzati.
@@ -122,7 +122,7 @@ Apri il browser su **[http://localhost:8080](http://localhost:8080)**.
 **Output atteso:**
 ```
 Database aperto: data/palestra.db
-Palestra digitale - server in ascolto su http://localhost:8080
+Comfortgym - server in ascolto su http://localhost:8080
 ```
 
 ### Comandi Make utili

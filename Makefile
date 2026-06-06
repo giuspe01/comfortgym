@@ -1,4 +1,4 @@
-# Makefile - Palestra digitale (caso di studio ITPS, traccia 2)
+# Makefile - Comfortgym (caso di studio ITPS, traccia 2)
 #
 # Target principali:
 #   make            -> compila l'eseguibile palestra(.exe)
