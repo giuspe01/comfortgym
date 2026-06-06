@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Palestra digitale - I miei piani nutrizionali</title>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/stile.css">
+    <style>
+        .card-img-piano {
+            height: 180px;
+            object-fit: cover;
+        }
+        .card-img-placeholder {
+            height: 180px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 2.5rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand bg-white border-bottom px-4">
+    <span class="navbar-brand">Palestra digitale</span>
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <a href="professionista.html" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+        <a id="linkProgrammi" href="catalogo-programmi-pro.html" class="btn btn-sm btn-outline-primary d-none">I miei programmi</a>
+        <button id="btnLogout" type="button" class="btn btn-outline-secondary btn-sm">Esci</button>
+    </div>
+</nav>
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">I miei piani nutrizionali</h1>
+        <button id="btnNuovoPiano" type="button" class="btn btn-primary">+ Nuovo piano</button>
+    </div>
+
+    <!-- Form crea/modifica (nascosto all'avvio) -->
+    <div id="cardFormPiano" class="card mb-4 d-none">
+        <div class="card-body">
+            <h2 class="h5 mb-3" id="titoloFormPiano">Nuovo piano</h2>
+            <form id="formPiano">
+                <input type="hidden" id="idPiano" value="">
+                <input type="hidden" id="immaginePrecedente" value="">
+
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label for="nomePiano" class="form-label">Nome</label>
+                        <input type="text" id="nomePiano" class="form-control"
+                               required minlength="2" maxlength="100">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="caloriePiano" class="form-label">Calorie giornaliere</label>
+                        <input type="number" id="caloriePiano" class="form-control"
+                               min="500" max="6000" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="consigliPiano" class="form-label">Consigli giornalieri</label>
+                    <textarea id="consigliPiano" class="form-control" rows="2" maxlength="500"
+                              placeholder="Suggerimenti che il cliente vedra' ogni giorno..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="immaginePiano" class="form-label">
+                        Immagine <span class="text-muted small">(opzionale, max 5 MB)</span>
+                    </label>
+                    <input type="file" id="immaginePiano" class="form-control" accept="image/*">
+                    <div id="anteprimaImmagine" class="mt-2 d-none">
+                        <small class="text-muted">Immagine attuale:</small>
+                        <img id="imgAttuale" src="" alt="anteprima"
+                             style="height: 60px; border-radius: 4px; margin-left: 8px;">
+                    </div>
+                </div>
+
+                <h3 class="h6 mt-3">Pasti</h3>
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 140px">Tipo</th>
+                            <th>Descrizione</th>
+                            <th style="width: 100px">Calorie</th>
+                            <th style="width: 60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="righePasti"></tbody>
+                </table>
+                <button type="button" id="btnAggiungiPasto"
+                        class="btn btn-sm btn-outline-primary mb-3">
+                    + Aggiungi pasto
+                </button>
+
+                <div id="messaggioFormPiano" class="alert d-none"></div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" id="btnAnnullaPiano"
+                            class="btn btn-outline-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Griglia card -->
+    <div id="griglia" class="row row-cols-1 row-cols-md-3 g-4">
+        <div class="col"><p class="text-muted">Caricamento...</p></div>
+    </div>
+
+</div>
+
+<!-- Modale dettaglio piano -->
+<div class="modal fade" id="modalDettaglio" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitolo"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalCorpo"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/catalogo-piani-pro.js"></script>
+
+</body>
+</html>

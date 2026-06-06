@@ -53,10 +53,8 @@ static int validaDatiProgramma(const nlohmann::json& dati,
         snprintf(msgErr, dimErr, "Nome programma troppo corto");
         return 0;
     }
-    if (strcmp(obiettivo, "perdita_peso") != 0
-        && strcmp(obiettivo, "massa") != 0
-        && strcmp(obiettivo, "mantenimento") != 0) {
-        snprintf(msgErr, dimErr, "Obiettivo non valido");
+    if (strlen(obiettivo) < 1) {
+        snprintf(msgErr, dimErr, "Obiettivo mancante");
         return 0;
     }
     if (strcmp(difficolta, "principiante") != 0
@@ -124,17 +122,19 @@ int creaProgramma(const nlohmann::json& dati, int idCreatore,
     char nome[LUNG_NOME_PROGRAMMA];
     char obiettivo[LUNG_OBIETTIVO];
     char difficolta[LUNG_DIFFICOLTA];
+    char immagine[LUNG_IMMAGINE_PROG];
     leggiStringa(dati, "nome", nome, sizeof(nome));
     leggiStringa(dati, "obiettivo", obiettivo, sizeof(obiettivo));
     leggiStringa(dati, "difficolta", difficolta, sizeof(difficolta));
+    leggiStringa(dati, "immagine", immagine, sizeof(immagine));
     int durata = leggiIntero(dati, "durataSettimane");
 
     // Transazione: programma + esercizi devono andare insieme.
     sqlite3_exec(g_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
 
     const char* sql =
-        "INSERT INTO programmi (nome, obiettivo, difficolta, durata_settimane, id_creatore) "
-        "VALUES (?, ?, ?, ?, ?);";
+        "INSERT INTO programmi (nome, obiettivo, difficolta, durata_settimane, id_creatore, immagine) "
+        "VALUES (?, ?, ?, ?, ?, ?);";
 
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -147,6 +147,7 @@ int creaProgramma(const nlohmann::json& dati, int idCreatore,
     sqlite3_bind_text(stmt, 3, difficolta, -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 4, durata);
     sqlite3_bind_int(stmt, 5, idCreatore);
+    sqlite3_bind_text(stmt, 6, immagine, -1, SQLITE_STATIC);
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
@@ -204,9 +205,11 @@ int aggiornaProgramma(int idProgramma, const nlohmann::json& dati,
     char nome[LUNG_NOME_PROGRAMMA];
     char obiettivo[LUNG_OBIETTIVO];
     char difficolta[LUNG_DIFFICOLTA];
+    char immagine[LUNG_IMMAGINE_PROG];
     leggiStringa(dati, "nome", nome, sizeof(nome));
     leggiStringa(dati, "obiettivo", obiettivo, sizeof(obiettivo));
     leggiStringa(dati, "difficolta", difficolta, sizeof(difficolta));
+    leggiStringa(dati, "immagine", immagine, sizeof(immagine));
     int durata = leggiIntero(dati, "durataSettimane");
 
     sqlite3_exec(g_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
@@ -214,7 +217,7 @@ int aggiornaProgramma(int idProgramma, const nlohmann::json& dati,
     // UPDATE del programma.
     const char* sqlUpd =
         "UPDATE programmi SET nome = ?, obiettivo = ?, difficolta = ?, "
-        "                     durata_settimane = ? WHERE id = ?;";
+        "                     durata_settimane = ?, immagine = ? WHERE id = ?;";
     if (sqlite3_prepare_v2(g_db, sqlUpd, -1, &stmt, NULL) != SQLITE_OK) {
         sqlite3_exec(g_db, "ROLLBACK;", NULL, NULL, NULL);
         snprintf(msgErr, dimErr, "Errore interno (prepare update)");
@@ -224,7 +227,8 @@ int aggiornaProgramma(int idProgramma, const nlohmann::json& dati,
     sqlite3_bind_text(stmt, 2, obiettivo, -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 3, difficolta, -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 4, durata);
-    sqlite3_bind_int(stmt, 5, idProgramma);
+    sqlite3_bind_text(stmt, 5, immagine, -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 6, idProgramma);
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     if (rc != SQLITE_DONE) {
@@ -308,7 +312,7 @@ int cancellaProgramma(int idProgramma, int idCreatore) {
 
 Programma* caricaProgramma(int idProgramma) {
     const char* sql =
-        "SELECT id, nome, obiettivo, difficolta, durata_settimane, id_creatore "
+        "SELECT id, nome, obiettivo, difficolta, durata_settimane, id_creatore, immagine "
         "FROM programmi WHERE id = ?;";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -328,6 +332,7 @@ Programma* caricaProgramma(int idProgramma) {
     copiaColonnaTesto(stmt, 3, p->difficolta, sizeof(p->difficolta));
     p->durataSettimane = sqlite3_column_int(stmt, 4);
     p->idCreatore = sqlite3_column_int(stmt, 5);
+    copiaColonnaTesto(stmt, 6, p->immagine, sizeof(p->immagine));
 
     sqlite3_finalize(stmt);
     return p;
@@ -368,8 +373,8 @@ int listaProgrammi(Programma* dest, int maxNum,
                    const char* difficolta,
                    int durataMax) {
     // Costruiamo la query dinamicamente in base ai filtri presenti.
-    char sql[600];
-    strcpy(sql, "SELECT id, nome, obiettivo, difficolta, durata_settimane, id_creatore "
+    char sql[700];
+    strcpy(sql, "SELECT id, nome, obiettivo, difficolta, durata_settimane, id_creatore, immagine "
                 "FROM programmi WHERE 1=1");
     if (obiettivo != NULL && obiettivo[0] != '\0') {
         strcat(sql, " AND obiettivo = ?");
@@ -407,6 +412,7 @@ int listaProgrammi(Programma* dest, int maxNum,
         copiaColonnaTesto(stmt, 3, p.difficolta, sizeof(p.difficolta));
         p.durataSettimane = sqlite3_column_int(stmt, 4);
         p.idCreatore = sqlite3_column_int(stmt, 5);
+        copiaColonnaTesto(stmt, 6, p.immagine, sizeof(p.immagine));
         n++;
     }
     sqlite3_finalize(stmt);
@@ -417,7 +423,7 @@ int listaProgrammi(Programma* dest, int maxNum,
 
 int listaProgrammiDelCreatore(int idCreatore, Programma* dest, int maxNum) {
     const char* sql =
-        "SELECT id, nome, obiettivo, difficolta, durata_settimane, id_creatore "
+        "SELECT id, nome, obiettivo, difficolta, durata_settimane, id_creatore, immagine "
         "FROM programmi WHERE id_creatore = ? ORDER BY id DESC;";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -434,6 +440,7 @@ int listaProgrammiDelCreatore(int idCreatore, Programma* dest, int maxNum) {
         copiaColonnaTesto(stmt, 3, p.difficolta, sizeof(p.difficolta));
         p.durataSettimane = sqlite3_column_int(stmt, 4);
         p.idCreatore = sqlite3_column_int(stmt, 5);
+        copiaColonnaTesto(stmt, 6, p.immagine, sizeof(p.immagine));
         n++;
     }
     sqlite3_finalize(stmt);

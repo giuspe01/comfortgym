@@ -19,9 +19,9 @@ static int estraiIdDaPath(const std::string& path) {
     return atoi(path.c_str() + pos + 1);
 }
 
-// Restituisce 1 se l'utente loggato e' un professionista.
-static int siaProfessionista(const httplib::Request& req, httplib::Response& res,
-                             int& idUtenteOut) {
+// Restituisce 1 se l'utente e' un trainer (specializzazione trainer o entrambi).
+static int siaTrainer(const httplib::Request& req, httplib::Response& res,
+                      int& idUtenteOut) {
     idUtenteOut = idUtenteCorrente(req);
     if (idUtenteOut == 0) {
         rispondiErrore(res, 401, "Non autenticato");
@@ -32,10 +32,17 @@ static int siaProfessionista(const httplib::Request& req, httplib::Response& res
         rispondiErrore(res, 500, "Errore caricamento utente");
         return 0;
     }
-    int ok = (strcmp(u->tipo(), "professionista") == 0);
+    if (strcmp(u->tipo(), "professionista") != 0) {
+        delete u;
+        rispondiErrore(res, 403, "Solo i professionisti possono fare questa operazione");
+        return 0;
+    }
+    Professionista* p = (Professionista*)u;
+    int ok = (strcmp(p->specializzazione, "trainer") == 0 ||
+              strcmp(p->specializzazione, "entrambi") == 0);
     delete u;
     if (!ok) {
-        rispondiErrore(res, 403, "Solo i professionisti possono fare questa operazione");
+        rispondiErrore(res, 403, "Solo i trainer possono gestire i programmi di allenamento");
         return 0;
     }
     return 1;
@@ -123,11 +130,11 @@ void registraRotteProgrammi(httplib::Server& server) {
             delete p;
         });
 
-    // ----- POST /api/programmi (crea, solo professionista) -----
+    // ----- POST /api/programmi (crea, solo trainer) -----
     server.Post("/api/programmi",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaTrainer(req, res, idUtente)) return;
 
             nlohmann::json corpo;
             if (!leggiCorpoJson(req, res, corpo)) return;
@@ -144,11 +151,11 @@ void registraRotteProgrammi(httplib::Server& server) {
             rispondiOk(res, r);
         });
 
-    // ----- PUT /api/programmi/<id> (modifica, solo creatore) -----
+    // ----- PUT /api/programmi/<id> (modifica, solo trainer creatore) -----
     server.Put(R"(/api/programmi/\d+)",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaTrainer(req, res, idUtente)) return;
 
             nlohmann::json corpo;
             if (!leggiCorpoJson(req, res, corpo)) return;
@@ -164,11 +171,11 @@ void registraRotteProgrammi(httplib::Server& server) {
             rispondiOk(res, r);
         });
 
-    // ----- DELETE /api/programmi/<id> (elimina, solo creatore) -----
+    // ----- DELETE /api/programmi/<id> (elimina, solo trainer creatore) -----
     server.Delete(R"(/api/programmi/\d+)",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaTrainer(req, res, idUtente)) return;
 
             int id = estraiIdDaPath(req.path);
             if (!cancellaProgramma(id, idUtente)) {
@@ -180,11 +187,11 @@ void registraRotteProgrammi(httplib::Server& server) {
             rispondiOk(res, r);
         });
 
-    // ----- GET /api/professionista/programmi -----
+    // ----- GET /api/professionista/programmi (solo trainer) -----
     server.Get("/api/professionista/programmi",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaTrainer(req, res, idUtente)) return;
 
             Programma elenco[MAX_PROGRAMMI_PER_QUERY];
             int n = listaProgrammiDelCreatore(idUtente, elenco, MAX_PROGRAMMI_PER_QUERY);

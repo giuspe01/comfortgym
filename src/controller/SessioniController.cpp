@@ -129,4 +129,20 @@ void registraRotteSessioni(httplib::Server& server) {
             r["attivita"] = arr;
             rispondiOk(res, r);
         });
+
+    // ----- GET /api/professionista/sessioni -----
+    // Singole sessioni svolte sui programmi di questo professionista,
+    // con nome e dati anagrafici del cliente.
+    server.Get("/api/professionista/sessioni",
+        [](const httplib::Request& req, httplib::Response& res) {
+            int idUtente;
+            if (!siaProfessionista(req, res, idUtente)) return;
+
+            nlohmann::json arr;
+            listaSessioniPerProfessionista(idUtente, arr);
+
+            nlohmann::json r;
+            r["sessioni"] = arr;
+            rispondiOk(res, r);
+        });
 }

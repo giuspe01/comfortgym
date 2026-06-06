@@ -28,6 +28,7 @@ Programma::Programma() {
     difficolta[0] = '\0';
     durataSettimane = 0;
     idCreatore = 0;
+    immagine[0] = '\0';
 }
 
 nlohmann::json Programma::toJson() const {
@@ -38,5 +39,6 @@ nlohmann::json Programma::toJson() const {
     j["difficolta"] = difficolta;
     j["durataSettimane"] = durataSettimane;
     j["idCreatore"] = idCreatore;
+    j["immagine"] = immagine;
     return j;
 }

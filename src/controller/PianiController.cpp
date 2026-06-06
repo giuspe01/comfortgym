@@ -9,6 +9,8 @@
 #include "modello/Utente.h"
 #include "servizi/Auth.h"
 #include "servizi/ServizioPiani.h"
+#include "servizi/ServizioAderenza.h"
+#include "servizi/ServizioFeedback.h"
 #include "utils/HttpUtils.h"
 
 static int estraiIdDaPath(const std::string& path) {
@@ -17,9 +19,9 @@ static int estraiIdDaPath(const std::string& path) {
     return atoi(path.c_str() + pos + 1);
 }
 
-// Verifica che l'utente loggato sia un professionista. Imposta idUtenteOut.
-static int siaProfessionista(const httplib::Request& req, httplib::Response& res,
-                             int& idUtenteOut) {
+// Restituisce 1 se l'utente e' un nutrizionista (specializzazione nutrizionista o entrambi).
+static int siaNutrizionista(const httplib::Request& req, httplib::Response& res,
+                            int& idUtenteOut) {
     idUtenteOut = idUtenteCorrente(req);
     if (idUtenteOut == 0) {
         rispondiErrore(res, 401, "Non autenticato");
@@ -30,10 +32,17 @@ static int siaProfessionista(const httplib::Request& req, httplib::Response& res
         rispondiErrore(res, 500, "Errore caricamento utente");
         return 0;
     }
-    int ok = (strcmp(u->tipo(), "professionista") == 0);
+    if (strcmp(u->tipo(), "professionista") != 0) {
+        delete u;
+        rispondiErrore(res, 403, "Solo i professionisti possono fare questa operazione");
+        return 0;
+    }
+    Professionista* p = (Professionista*)u;
+    int ok = (strcmp(p->specializzazione, "nutrizionista") == 0 ||
+              strcmp(p->specializzazione, "entrambi") == 0);
     delete u;
     if (!ok) {
-        rispondiErrore(res, 403, "Solo i professionisti possono fare questa operazione");
+        rispondiErrore(res, 403, "Solo i nutrizionisti possono gestire i piani nutrizionali");
         return 0;
     }
     return 1;
@@ -114,7 +123,7 @@ void registraRottePiani(httplib::Server& server) {
     server.Post("/api/piani",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaNutrizionista(req, res, idUtente)) return;
 
             nlohmann::json corpo;
             if (!leggiCorpoJson(req, res, corpo)) return;
@@ -135,7 +144,7 @@ void registraRottePiani(httplib::Server& server) {
     server.Put(R"(/api/piani/\d+)",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaNutrizionista(req, res, idUtente)) return;
 
             nlohmann::json corpo;
             if (!leggiCorpoJson(req, res, corpo)) return;
@@ -155,7 +164,7 @@ void registraRottePiani(httplib::Server& server) {
     server.Delete(R"(/api/piani/\d+)",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaNutrizionista(req, res, idUtente)) return;
 
             int id = estraiIdDaPath(req.path);
             if (!cancellaPiano(id, idUtente)) {
@@ -171,7 +180,7 @@ void registraRottePiani(httplib::Server& server) {
     server.Get("/api/professionista/piani",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
-            if (!siaProfessionista(req, res, idUtente)) return;
+            if (!siaNutrizionista(req, res, idUtente)) return;
 
             PianoNutrizionale elenco[MAX_PIANI_PER_QUERY];
             int n = listaPianiDelCreatore(idUtente, elenco, MAX_PIANI_PER_QUERY);
@@ -180,6 +189,48 @@ void registraRottePiani(httplib::Server& server) {
             for (int i = 0; i < n; i++) arr.push_back(elenco[i].toJson());
             nlohmann::json r;
             r["piani"] = arr;
+            rispondiOk(res, r);
+        });
+
+    // ----- GET /api/professionista/attivita-piani (statistiche aggregate piani) -----
+    server.Get("/api/professionista/attivita-piani",
+        [](const httplib::Request& req, httplib::Response& res) {
+            int idUtente;
+            if (!siaNutrizionista(req, res, idUtente)) return;
+
+            nlohmann::json arr;
+            attivitaAgregatePiani(idUtente, arr);
+
+            nlohmann::json r;
+            r["attivita"] = arr;
+            rispondiOk(res, r);
+        });
+
+    // ----- GET /api/professionista/aderenze (tutte le aderenze sui miei piani) -----
+    server.Get("/api/professionista/aderenze",
+        [](const httplib::Request& req, httplib::Response& res) {
+            int idUtente;
+            if (!siaNutrizionista(req, res, idUtente)) return;
+
+            nlohmann::json arr;
+            listaAderenzePerNutrizionista(idUtente, arr);
+
+            nlohmann::json r;
+            r["aderenze"] = arr;
+            rispondiOk(res, r);
+        });
+
+    // ----- GET /api/professionista/feedback-piani (tutti i feedback sui miei piani) -----
+    server.Get("/api/professionista/feedback-piani",
+        [](const httplib::Request& req, httplib::Response& res) {
+            int idUtente;
+            if (!siaNutrizionista(req, res, idUtente)) return;
+
+            nlohmann::json arr;
+            listaFeedbackPianiNutrizionista(idUtente, arr);
+
+            nlohmann::json r;
+            r["feedback"] = arr;
             rispondiOk(res, r);
         });
 

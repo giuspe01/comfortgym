@@ -100,8 +100,10 @@ document.getElementById("formRegistrati").addEventListener("submit", async funct
         return;
     }
 
-    // Registrazione riuscita: torno al form di login con un messaggio di successo
-    // e precompilo lo username.
+    // Registrazione riuscita: pulisco il form, torno al login con un messaggio.
+    document.getElementById("formRegistrati").reset();
+    document.getElementById("campiCliente").classList.add("d-none");
+    document.getElementById("campiProfessionista").classList.add("d-none");
     mostraForm("accedi");
     document.getElementById("accediUsername").value = dati.username;
     document.getElementById("accediPassword").value = "";

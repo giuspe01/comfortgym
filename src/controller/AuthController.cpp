@@ -143,4 +143,46 @@ void registraRotteAuth(httplib::Server& server) {
 
             delete u;
         });
+
+    // ----- PUT /api/cliente/profilo -----
+    // Aggiorna eta, peso, altezza del cliente loggato.
+    server.Put("/api/cliente/profilo",
+        [](const httplib::Request& req, httplib::Response& res) {
+            int idUtente = idUtenteCorrente(req);
+            if (idUtente == 0) {
+                rispondiErrore(res, 401, "Non autenticato");
+                return;
+            }
+
+            Utente* u = caricaUtente(idUtente);
+            if (u == NULL) {
+                rispondiErrore(res, 500, "Errore caricamento utente");
+                return;
+            }
+            int eCliente = (strcmp(u->tipo(), "cliente") == 0);
+            delete u;
+            if (!eCliente) {
+                rispondiErrore(res, 403, "Solo i clienti possono modificare il proprio profilo");
+                return;
+            }
+
+            nlohmann::json corpo;
+            if (!leggiCorpoJson(req, res, corpo)) return;
+
+            char msgErr[200] = {0};
+            if (!aggiornaProfilo(idUtente, corpo, msgErr, sizeof(msgErr))) {
+                rispondiErrore(res, 400, msgErr);
+                return;
+            }
+
+            Utente* aggiornato = caricaUtente(idUtente);
+            if (aggiornato == NULL) {
+                rispondiErrore(res, 500, "Errore caricamento utente aggiornato");
+                return;
+            }
+            nlohmann::json risposta;
+            risposta["utente"] = aggiornato->toJson();
+            rispondiOk(res, risposta);
+            delete aggiornato;
+        });
 }

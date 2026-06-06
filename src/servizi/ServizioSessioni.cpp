@@ -130,10 +130,16 @@ int cancellaSessione(int idSessione, int idCliente) {
 // ----- listaSessioniCliente -----
 
 int listaSessioniCliente(int idCliente, Sessione* dest, int maxNum) {
+    // LEFT JOIN per ottenere il nome del programma: anche se il programma venisse
+    // cancellato, la riga della sessione rimarrebbe con nomeProgramma vuoto.
     const char* sql =
-        "SELECT id, id_cliente, id_programma, data, durata_min, completata, note "
-        "FROM sessioni WHERE id_cliente = ? "
-        "ORDER BY data DESC, id DESC;";
+        "SELECT s.id, s.id_cliente, s.id_programma, "
+        "       COALESCE(p.nome, '') AS nome_programma, "
+        "       s.data, s.durata_min, s.completata, s.note "
+        "FROM sessioni s "
+        "LEFT JOIN programmi p ON p.id = s.id_programma "
+        "WHERE s.id_cliente = ? "
+        "ORDER BY s.data DESC, s.id DESC;";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
         return 0;
@@ -146,10 +152,11 @@ int listaSessioniCliente(int idCliente, Sessione* dest, int maxNum) {
         s.id = sqlite3_column_int(stmt, 0);
         s.idCliente = sqlite3_column_int(stmt, 1);
         s.idProgramma = sqlite3_column_int(stmt, 2);
-        copiaColonnaTesto(stmt, 3, s.data, sizeof(s.data));
-        s.durataMin = sqlite3_column_int(stmt, 4);
-        s.completata = sqlite3_column_int(stmt, 5);
-        copiaColonnaTesto(stmt, 6, s.note, sizeof(s.note));
+        copiaColonnaTesto(stmt, 3, s.nomeProgramma, sizeof(s.nomeProgramma));
+        copiaColonnaTesto(stmt, 4, s.data, sizeof(s.data));
+        s.durataMin = sqlite3_column_int(stmt, 5);
+        s.completata = sqlite3_column_int(stmt, 6);
+        copiaColonnaTesto(stmt, 7, s.note, sizeof(s.note));
         n++;
     }
     sqlite3_finalize(stmt);
@@ -192,6 +199,70 @@ void calcolaStatistichePerProfessionista(int idProfessionista,
 
         const unsigned char* dataVal = sqlite3_column_text(stmt, 4);
         riga["ultimaData"] = (dataVal == NULL) ? "" : (const char*)dataVal;
+
+        destinazione.push_back(riga);
+    }
+    sqlite3_finalize(stmt);
+}
+
+// ----- listaSessioniPerProfessionista -----
+
+void listaSessioniPerProfessionista(int idProfessionista,
+                                    nlohmann::json& destinazione) {
+    destinazione = nlohmann::json::array();
+
+    // JOIN tra sessioni, programmi (per filtrare quelli del professionista)
+    // e utenti (per i dati anagrafici del cliente).
+    const char* sql =
+        "SELECT s.id, s.id_programma, p.nome AS nome_programma, "
+        "       s.id_cliente, u.nome, u.cognome, u.email, "
+        "       u.eta, u.peso, u.altezza, u.obiettivo, "
+        "       s.data, s.durata_min, s.completata, s.note "
+        "FROM sessioni s "
+        "JOIN programmi p ON p.id = s.id_programma "
+        "JOIN utenti u ON u.id = s.id_cliente "
+        "WHERE p.id_creatore = ? "
+        "ORDER BY s.data DESC, s.id DESC;";
+
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        return;
+    }
+    sqlite3_bind_int(stmt, 1, idProfessionista);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        nlohmann::json riga;
+        riga["idSessione"] = sqlite3_column_int(stmt, 0);
+        riga["idProgramma"] = sqlite3_column_int(stmt, 1);
+
+        char buf[300];
+        copiaColonnaTesto(stmt, 2, buf, sizeof(buf));
+        riga["nomeProgramma"] = buf;
+
+        riga["idCliente"] = sqlite3_column_int(stmt, 3);
+
+        copiaColonnaTesto(stmt, 4, buf, sizeof(buf));
+        std::string nome = buf;
+        copiaColonnaTesto(stmt, 5, buf, sizeof(buf));
+        riga["nomeCliente"] = nome + " " + buf;
+
+        copiaColonnaTesto(stmt, 6, buf, sizeof(buf));
+        riga["emailCliente"] = buf;
+
+        riga["etaCliente"]     = sqlite3_column_int(stmt, 7);
+        riga["pesoCliente"]    = sqlite3_column_double(stmt, 8);
+        riga["altezzaCliente"] = sqlite3_column_double(stmt, 9);
+
+        copiaColonnaTesto(stmt, 10, buf, sizeof(buf));
+        riga["obiettivoCliente"] = buf;
+
+        copiaColonnaTesto(stmt, 11, buf, sizeof(buf));
+        riga["data"] = buf;
+        riga["durataMin"]   = sqlite3_column_int(stmt, 12);
+        riga["completata"]  = (sqlite3_column_int(stmt, 13) == 1);
+
+        copiaColonnaTesto(stmt, 14, buf, sizeof(buf));
+        riga["note"] = buf;
 
         destinazione.push_back(riga);
     }

@@ -30,4 +30,7 @@ int verificaSessione(const char* token);
 // Cancella la sessione (logout).
 void rimuoviSessione(const char* token);
 
+// Aggiorna eta, peso, altezza del cliente. Ritorna 1 se ok, 0 in caso di errore.
+int aggiornaProfilo(int idCliente, const nlohmann::json& dati, char* msgErr, int dimErr);
+
 #endif

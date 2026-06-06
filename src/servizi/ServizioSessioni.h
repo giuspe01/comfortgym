@@ -26,4 +26,13 @@ int listaSessioniCliente(int idCliente, Sessione* dest, int maxNum);
 void calcolaStatistichePerProfessionista(int idProfessionista,
                                          nlohmann::json& destinazione);
 
+// Lista le singole sessioni svolte sui programmi di un professionista,
+// includendo nome, email e dati anagrafici del cliente.
+// Ogni riga: { idSessione, idProgramma, nomeProgramma, idCliente,
+//              nomeCliente, emailCliente, etaCliente, pesoCliente,
+//              altezzaCliente, obiettivoCliente, data, durataMin,
+//              completata, note }.
+void listaSessioniPerProfessionista(int idProfessionista,
+                                    nlohmann::json& destinazione);
+
 #endif

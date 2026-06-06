@@ -5,14 +5,16 @@
 
 #include "json.hpp"
 
-#define LUNG_DATA_SESSIONE  16     // "AAAA-MM-GG"
-#define LUNG_NOTE_SESSIONE  300
+#define LUNG_DATA_SESSIONE   16     // "AAAA-MM-GG"
+#define LUNG_NOTE_SESSIONE   300
+#define LUNG_NOME_SESSIONE   100    // nome programma al momento della sessione
 
 class Sessione {
 public:
     int id;
     int idCliente;
     int idProgramma;
+    char nomeProgramma[LUNG_NOME_SESSIONE];
     char data[LUNG_DATA_SESSIONE];
     int durataMin;
     int completata;                // 0 o 1

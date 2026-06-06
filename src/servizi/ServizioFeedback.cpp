@@ -5,6 +5,7 @@
 #include <ctime>
 
 #include "persistenza/Database.h"
+#include "modello/FeedbackPiano.h"
 
 // ----- Helper interni -----
 
@@ -205,6 +206,179 @@ void listaFeedbackProfessionista(int idProfessionista,
         riga["idProgramma"] = sqlite3_column_int(stmt, 4);
         copiaColonnaTesto(stmt, 5, buf, sizeof(buf));
         riga["nomeProgramma"] = buf;
+
+        char nome[64], cognome[64];
+        copiaColonnaTesto(stmt, 6, nome, sizeof(nome));
+        copiaColonnaTesto(stmt, 7, cognome, sizeof(cognome));
+        char nomeCompleto[140];
+        snprintf(nomeCompleto, sizeof(nomeCompleto), "%s %s", nome, cognome);
+        riga["nomeCliente"] = nomeCompleto;
+
+        destinazione.push_back(riga);
+    }
+    sqlite3_finalize(stmt);
+}
+
+// ==================== FEEDBACK PIANI NUTRIZIONALI ====================
+
+// Cerca un feedback esistente del cliente sul piano. Ritorna id, 0 se assente.
+static int idFeedbackPianoEsistente(int idCliente, int idPiano) {
+    const char* sql =
+        "SELECT id FROM feedback_piani WHERE id_cliente = ? AND id_piano = ?;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) return 0;
+    sqlite3_bind_int(stmt, 1, idCliente);
+    sqlite3_bind_int(stmt, 2, idPiano);
+    int id = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        id = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return id;
+}
+
+// ----- inviaFeedbackPiano -----
+
+int inviaFeedbackPiano(int idCliente, const nlohmann::json& dati,
+                       char* msgErr, int dimErr) {
+    int idPiano = leggiIntero(dati, "idPiano");
+    int voto = leggiIntero(dati, "voto");
+    char commento[LUNG_COMMENTO_FBP];
+    leggiStringa(dati, "commento", commento, sizeof(commento));
+
+    if (idPiano <= 0) {
+        snprintf(msgErr, dimErr, "idPiano mancante");
+        return 0;
+    }
+    if (voto < 1 || voto > 5) {
+        snprintf(msgErr, dimErr, "Voto fuori range (1-5)");
+        return 0;
+    }
+
+    // Verifica esistenza piano.
+    const char* sqlCheck = "SELECT id FROM piani WHERE id = ?;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(g_db, sqlCheck, -1, &stmt, NULL) != SQLITE_OK) {
+        snprintf(msgErr, dimErr, "Errore interno");
+        return 0;
+    }
+    sqlite3_bind_int(stmt, 1, idPiano);
+    int trovato = (sqlite3_step(stmt) == SQLITE_ROW);
+    sqlite3_finalize(stmt);
+    if (!trovato) {
+        snprintf(msgErr, dimErr, "Piano inesistente");
+        return 0;
+    }
+
+    char dataOggiStr[11];
+    dataOggi(dataOggiStr);
+
+    int esistente = idFeedbackPianoEsistente(idCliente, idPiano);
+
+    if (esistente > 0) {
+        const char* sql =
+            "UPDATE feedback_piani SET voto = ?, commento = ?, data = ? WHERE id = ?;";
+        if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+            snprintf(msgErr, dimErr, "Errore interno (prepare update)");
+            return 0;
+        }
+        sqlite3_bind_int(stmt, 1, voto);
+        sqlite3_bind_text(stmt, 2, commento, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, dataOggiStr, -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 4, esistente);
+        int rc = sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+        if (rc != SQLITE_DONE) {
+            snprintf(msgErr, dimErr, "Errore aggiornamento feedback piano");
+            return 0;
+        }
+        return esistente;
+    }
+
+    const char* sql =
+        "INSERT INTO feedback_piani (id_cliente, id_piano, voto, commento, data) "
+        "VALUES (?, ?, ?, ?, ?);";
+    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        snprintf(msgErr, dimErr, "Errore interno (prepare insert)");
+        return 0;
+    }
+    sqlite3_bind_int(stmt, 1, idCliente);
+    sqlite3_bind_int(stmt, 2, idPiano);
+    sqlite3_bind_int(stmt, 3, voto);
+    sqlite3_bind_text(stmt, 4, commento, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 5, dataOggiStr, -1, SQLITE_STATIC);
+    int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) {
+        snprintf(msgErr, dimErr, "Errore invio feedback piano");
+        return 0;
+    }
+    return (int)sqlite3_last_insert_rowid(g_db);
+}
+
+// ----- caricaFeedbackPianoCliente -----
+
+FeedbackPiano* caricaFeedbackPianoCliente(int idCliente, int idPiano) {
+    const char* sql =
+        "SELECT id, id_cliente, id_piano, voto, commento, data "
+        "FROM feedback_piani WHERE id_cliente = ? AND id_piano = ?;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) return NULL;
+    sqlite3_bind_int(stmt, 1, idCliente);
+    sqlite3_bind_int(stmt, 2, idPiano);
+
+    if (sqlite3_step(stmt) != SQLITE_ROW) {
+        sqlite3_finalize(stmt);
+        return NULL;
+    }
+
+    FeedbackPiano* f = new FeedbackPiano();
+    f->id = sqlite3_column_int(stmt, 0);
+    f->idCliente = sqlite3_column_int(stmt, 1);
+    f->idPiano = sqlite3_column_int(stmt, 2);
+    f->voto = sqlite3_column_int(stmt, 3);
+    copiaColonnaTesto(stmt, 4, f->commento, sizeof(f->commento));
+    copiaColonnaTesto(stmt, 5, f->data, sizeof(f->data));
+
+    sqlite3_finalize(stmt);
+    return f;
+}
+
+// ----- listaFeedbackPianiNutrizionista -----
+
+void listaFeedbackPianiNutrizionista(int idNutrizionista,
+                                     nlohmann::json& destinazione) {
+    destinazione = nlohmann::json::array();
+
+    const char* sql =
+        "SELECT f.id, f.voto, f.commento, f.data, "
+        "       p.id, p.nome, "
+        "       u.nome, u.cognome "
+        "FROM feedback_piani f "
+        "JOIN piani p ON p.id = f.id_piano "
+        "JOIN utenti u ON u.id = f.id_cliente "
+        "WHERE p.id_creatore = ? "
+        "ORDER BY f.data DESC, f.id DESC;";
+
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) return;
+    sqlite3_bind_int(stmt, 1, idNutrizionista);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        nlohmann::json riga;
+        riga["id"] = sqlite3_column_int(stmt, 0);
+        riga["voto"] = sqlite3_column_int(stmt, 1);
+
+        char buf[LUNG_COMMENTO_FBP];
+        copiaColonnaTesto(stmt, 2, buf, sizeof(buf));
+        riga["commento"] = buf;
+
+        copiaColonnaTesto(stmt, 3, buf, sizeof(buf));
+        riga["data"] = buf;
+
+        riga["idPiano"] = sqlite3_column_int(stmt, 4);
+        copiaColonnaTesto(stmt, 5, buf, sizeof(buf));
+        riga["nomePiano"] = buf;
 
         char nome[64], cognome[64];
         copiaColonnaTesto(stmt, 6, nome, sizeof(nome));

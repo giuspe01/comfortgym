@@ -84,6 +84,7 @@ run: $(TARGET)
 clean:
 	@$(call RM_DIR,$(BUILD))
 	@$(call RM_FILE,$(TARGET))
+	@$(call RM_FILE,data/palestra.db)
 	@echo === Pulizia completata ===
 
 rebuild: clean all

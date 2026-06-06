@@ -6,6 +6,7 @@
 
 #include "controller/AuthController.h"
 #include "modello/Feedback.h"
+#include "modello/FeedbackPiano.h"
 #include "modello/Utente.h"
 #include "servizi/Auth.h"
 #include "servizi/ServizioFeedback.h"
@@ -101,7 +102,7 @@ void registraRotteFeedback(httplib::Server& server) {
             rispondiOk(res, r);
         });
 
-    // ----- GET /api/professionista/feedback (tutti i feedback ricevuti) -----
+    // ----- GET /api/professionista/feedback (tutti i feedback ricevuti sui programmi) -----
     server.Get("/api/professionista/feedback",
         [](const httplib::Request& req, httplib::Response& res) {
             int idUtente;
@@ -112,6 +113,46 @@ void registraRotteFeedback(httplib::Server& server) {
 
             nlohmann::json r;
             r["feedback"] = arr;
+            rispondiOk(res, r);
+        });
+
+    // ----- POST /api/feedback-piani (cliente invia / aggiorna feedback su un piano) -----
+    server.Post("/api/feedback-piani",
+        [](const httplib::Request& req, httplib::Response& res) {
+            int idUtente;
+            if (!siaCliente(req, res, idUtente)) return;
+
+            nlohmann::json corpo;
+            if (!leggiCorpoJson(req, res, corpo)) return;
+
+            char msgErr[200] = {0};
+            int idFb = inviaFeedbackPiano(idUtente, corpo, msgErr, sizeof(msgErr));
+            if (idFb == 0) {
+                rispondiErrore(res, 400, msgErr);
+                return;
+            }
+            nlohmann::json r;
+            r["id"] = idFb;
+            r["messaggio"] = "Feedback piano salvato";
+            rispondiOk(res, r);
+        });
+
+    // ----- GET /api/feedback-piani/piano/<id> (cliente: il suo feedback per quel piano) -----
+    server.Get(R"(/api/feedback-piani/piano/\d+)",
+        [](const httplib::Request& req, httplib::Response& res) {
+            int idUtente;
+            if (!siaCliente(req, res, idUtente)) return;
+
+            int idPiano = estraiIdDaPath(req.path);
+            FeedbackPiano* f = caricaFeedbackPianoCliente(idUtente, idPiano);
+
+            nlohmann::json r;
+            if (f == NULL) {
+                r["feedback"] = nullptr;
+            } else {
+                r["feedback"] = f->toJson();
+                delete f;
+            }
             rispondiOk(res, r);
         });
 }

@@ -22,6 +22,8 @@ PianoNutrizionale::PianoNutrizionale() {
     nome[0] = '\0';
     calorieGiornaliere = 0;
     idCreatore = 0;
+    consigliGiornalieri[0] = '\0';
+    immagine[0] = '\0';
 }
 
 nlohmann::json PianoNutrizionale::toJson() const {
@@ -30,5 +32,7 @@ nlohmann::json PianoNutrizionale::toJson() const {
     j["nome"] = nome;
     j["calorieGiornaliere"] = calorieGiornaliere;
     j["idCreatore"] = idCreatore;
+    j["consigliGiornalieri"] = consigliGiornalieri;
+    j["immagine"] = immagine;
     return j;
 }

@@ -46,7 +46,8 @@ static const char* SCHEMA_SQL =
     "    obiettivo TEXT NOT NULL,"
     "    difficolta TEXT NOT NULL,"
     "    durata_settimane INTEGER NOT NULL,"
-    "    id_creatore INTEGER NOT NULL REFERENCES utenti(id)"
+    "    id_creatore INTEGER NOT NULL REFERENCES utenti(id),"
+    "    immagine TEXT"
     ");"
 
     "CREATE TABLE IF NOT EXISTS esercizi ("
@@ -63,7 +64,19 @@ static const char* SCHEMA_SQL =
     "    id INTEGER PRIMARY KEY AUTOINCREMENT,"
     "    nome TEXT NOT NULL,"
     "    calorie_giornaliere INTEGER NOT NULL,"
-    "    id_creatore INTEGER NOT NULL REFERENCES utenti(id)"
+    "    id_creatore INTEGER NOT NULL REFERENCES utenti(id),"
+    "    consigli_giornalieri TEXT,"                      // suggerimenti del professionista
+    "    immagine TEXT"
+    ");"
+
+    "CREATE TABLE IF NOT EXISTS aderenza_nutrizionale ("
+    "    id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "    id_cliente INTEGER NOT NULL REFERENCES utenti(id) ON DELETE CASCADE,"
+    "    id_piano INTEGER NOT NULL REFERENCES piani(id) ON DELETE CASCADE,"
+    "    data TEXT NOT NULL,"                              // ISO "AAAA-MM-GG"
+    "    percentuale INTEGER NOT NULL,"                    // 0..100
+    "    note TEXT,"
+    "    UNIQUE(id_cliente, data)"                         // un'unica registrazione per giorno
     ");"
 
     "CREATE TABLE IF NOT EXISTS pasti ("
@@ -88,6 +101,15 @@ static const char* SCHEMA_SQL =
     "    id INTEGER PRIMARY KEY AUTOINCREMENT,"
     "    id_cliente INTEGER NOT NULL REFERENCES utenti(id),"
     "    id_programma INTEGER NOT NULL REFERENCES programmi(id),"
+    "    voto INTEGER NOT NULL,"                   // 1..5
+    "    commento TEXT,"
+    "    data TEXT NOT NULL"
+    ");"
+
+    "CREATE TABLE IF NOT EXISTS feedback_piani ("
+    "    id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "    id_cliente INTEGER NOT NULL REFERENCES utenti(id),"
+    "    id_piano INTEGER NOT NULL REFERENCES piani(id),"
     "    voto INTEGER NOT NULL,"                   // 1..5
     "    commento TEXT,"
     "    data TEXT NOT NULL"
@@ -119,6 +141,12 @@ int apriDatabase(const char* percorso) {
         g_db = NULL;
         return 0;
     }
+
+    // Aggiunge colonne introdotte in versioni successive.
+    // ALTER TABLE fallisce silenziosamente se la colonna esiste gia'.
+    sqlite3_exec(g_db,
+        "ALTER TABLE aderenza_nutrizionale ADD COLUMN consiglio_pro TEXT;",
+        NULL, NULL, NULL);
 
     return 1;
 }

@@ -6,10 +6,11 @@
 #include "json.hpp"
 
 #define LUNG_NOME_PROGRAMMA   100
-#define LUNG_OBIETTIVO         32
+#define LUNG_OBIETTIVO        200      // testo libero
 #define LUNG_DIFFICOLTA        32
 #define LUNG_NOME_ESERCIZIO   100
 #define LUNG_NOTE             300
+#define LUNG_IMMAGINE_PROG    500      // URL immagine
 
 #define MAX_ESERCIZI_PER_PROGRAMMA 20
 
@@ -31,10 +32,11 @@ class Programma {
 public:
     int id;
     char nome[LUNG_NOME_PROGRAMMA];
-    char obiettivo[LUNG_OBIETTIVO];      // "perdita_peso" | "massa" | "mantenimento"
+    char obiettivo[LUNG_OBIETTIVO];
     char difficolta[LUNG_DIFFICOLTA];    // "principiante" | "intermedio" | "avanzato"
     int durataSettimane;
     int idCreatore;
+    char immagine[LUNG_IMMAGINE_PROG];  // URL opzionale
 
     Programma();
     nlohmann::json toJson() const;

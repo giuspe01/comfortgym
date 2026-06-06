@@ -13,6 +13,8 @@
 #include "controller/PianiController.h"
 #include "controller/SessioniController.h"
 #include "controller/FeedbackController.h"
+#include "controller/AderenzaController.h"
+#include "controller/UploadController.h"
 
 // Indirizzo e porta su cui il server resta in ascolto.
 // "0.0.0.0" significa "ascolta su qualsiasi interfaccia di rete".
@@ -25,6 +27,9 @@ const char* PERCORSO_DB = "data/palestra.db";
 int main() {
     // Inizializza il generatore di numeri casuali (usato per i token di sessione).
     srand((unsigned int)time(NULL));
+
+    // Crea la cartella per le immagini caricate se non esiste gia'.
+    system("mkdir public\\uploads 2>nul");
 
     // Apertura del database (e creazione automatica dello schema se serve).
     if (!apriDatabase(PERCORSO_DB)) {
@@ -65,6 +70,12 @@ int main() {
 
     // Rotte dei feedback.
     registraRotteFeedback(server);
+
+    // Rotte dell'aderenza al piano nutrizionale.
+    registraRotteAderenza(server);
+
+    // Rotta per l'upload di immagini.
+    registraRotteUpload(server);
 
     printf("Palestra digitale - server in ascolto su http://localhost:%d\n", PORTA);
     printf("Premi Ctrl+C per terminare.\n");

@@ -12,177 +12,130 @@
 
 <nav class="navbar navbar-expand bg-white border-bottom px-4">
     <span class="navbar-brand">Palestra digitale</span>
-    <span class="ms-auto me-3 text-muted">
-        Ciao <span id="nomeUtente"></span>
-        <span class="badge bg-secondary ms-2" id="specializzazione"></span>
-    </span>
-    <button id="btnLogout" type="button" class="btn btn-outline-secondary btn-sm">
-        Esci
-    </button>
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <a href="catalogo-programmi-pro.html" id="linkProgram" class="btn btn-sm btn-outline-primary d-none">
+            I miei programmi
+        </a>
+        <a href="catalogo-piani-pro.html" id="linkPiani" class="btn btn-sm btn-outline-primary d-none">
+            I miei piani
+        </a>
+        <span class="text-muted">
+            Ciao <span id="nomeUtente"></span>
+            <span class="badge bg-secondary ms-2" id="specializzazione"></span>
+        </span>
+        <button id="btnLogout" type="button" class="btn btn-outline-secondary btn-sm">Esci</button>
+    </div>
 </nav>
 
 <div class="container py-4">
 
     <h1 class="h3 mb-4">Area professionista</h1>
 
-    <!-- Lista programmi creati -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="h5 mb-0">Programmi creati</h2>
-                <button id="btnNuovoProgramma" type="button" class="btn btn-sm btn-primary">
-                    Nuovo programma
-                </button>
-            </div>
-            <div id="elencoProgrammi">
-                <p class="text-muted">Caricamento...</p>
-            </div>
-        </div>
-    </div>
+    <!-- Sezione visibile solo a trainer/entrambi -->
+    <div id="sezioneProgram">
 
-    <!-- Form crea/modifica programma -->
-    <div id="cardFormProgramma" class="card mb-3 d-none">
-        <div class="card-body">
-            <h2 class="h5 mb-3" id="titoloFormProgramma">Nuovo programma</h2>
-            <form id="formProgramma">
-                <input type="hidden" id="idProgramma" value="">
-
-                <div class="mb-3">
-                    <label for="nomeProgramma" class="form-label">Nome</label>
-                    <input type="text" id="nomeProgramma" class="form-control" required minlength="2" maxlength="100">
+        <!-- Statistiche aggregate -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Attivita' dei clienti sui miei programmi</h2>
+                <div id="elencoAttivita">
+                    <p class="text-muted mb-0">Caricamento...</p>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="obiettivoProgramma" class="form-label">Obiettivo</label>
-                        <select id="obiettivoProgramma" class="form-select" required>
-                            <option value="perdita_peso">Perdita peso</option>
-                            <option value="massa">Massa</option>
-                            <option value="mantenimento">Mantenimento</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="difficoltaProgramma" class="form-label">Difficolta'</label>
-                        <select id="difficoltaProgramma" class="form-select" required>
-                            <option value="principiante">Principiante</option>
-                            <option value="intermedio">Intermedio</option>
-                            <option value="avanzato">Avanzato</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="durataProgramma" class="form-label">Durata (settimane)</label>
-                        <input type="number" id="durataProgramma" class="form-control" min="1" max="52" required>
-                    </div>
-                </div>
-
-                <h3 class="h6 mt-3">Esercizi</h3>
-                <table class="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th style="width: 80px">Serie</th>
-                            <th style="width: 100px">Ripetizioni</th>
-                            <th style="width: 100px">Riposo (s)</th>
-                            <th>Note</th>
-                            <th style="width: 60px"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="righeEsercizi"></tbody>
-                </table>
-                <button type="button" id="btnAggiungiEsercizio" class="btn btn-sm btn-outline-primary mb-3">
-                    + Aggiungi esercizio
-                </button>
-
-                <div id="messaggioFormProgramma" class="alert d-none"></div>
-
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary">Salva</button>
-                    <button type="button" id="btnAnnullaProgramma" class="btn btn-outline-secondary">Annulla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Lista piani nutrizionali creati -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="h5 mb-0">Piani nutrizionali creati</h2>
-                <button id="btnNuovoPiano" type="button" class="btn btn-sm btn-primary">
-                    Nuovo piano
-                </button>
-            </div>
-            <div id="elencoPiani">
-                <p class="text-muted">Caricamento...</p>
             </div>
         </div>
-    </div>
 
-    <!-- Form crea/modifica piano -->
-    <div id="cardFormPiano" class="card mb-3 d-none">
-        <div class="card-body">
-            <h2 class="h5 mb-3" id="titoloFormPiano">Nuovo piano</h2>
-            <form id="formPiano">
-                <input type="hidden" id="idPiano" value="">
-
-                <div class="row">
-                    <div class="col-md-8 mb-3">
-                        <label for="nomePiano" class="form-label">Nome</label>
-                        <input type="text" id="nomePiano" class="form-control" required minlength="2" maxlength="100">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="caloriePiano" class="form-label">Calorie giornaliere</label>
-                        <input type="number" id="caloriePiano" class="form-control" min="500" max="6000" required>
-                    </div>
+        <!-- Sessioni individuali con dettaglio cliente -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Sessioni dei clienti</h2>
+                <div id="elencoSessioniClienti">
+                    <p class="text-muted mb-0">Caricamento...</p>
                 </div>
-
-                <h3 class="h6 mt-3">Pasti</h3>
-                <table class="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th style="width: 140px">Tipo</th>
-                            <th>Descrizione</th>
-                            <th style="width: 100px">Calorie</th>
-                            <th style="width: 60px"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="righePasti"></tbody>
-                </table>
-                <button type="button" id="btnAggiungiPasto" class="btn btn-sm btn-outline-primary mb-3">
-                    + Aggiungi pasto
-                </button>
-
-                <div id="messaggioFormPiano" class="alert d-none"></div>
-
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary">Salva</button>
-                    <button type="button" id="btnAnnullaPiano" class="btn btn-outline-secondary">Annulla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Attivita' dei clienti sui propri programmi -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <h2 class="h5 mb-3">Attivita' dei clienti sui miei programmi</h2>
-            <div id="elencoAttivita">
-                <p class="text-muted mb-0">Caricamento...</p>
             </div>
         </div>
-    </div>
 
-    <div class="card">
-        <div class="card-body">
-            <h2 class="h5 mb-3">Feedback ricevuti</h2>
-            <div id="elencoFeedback">
-                <p class="text-muted mb-0">Caricamento...</p>
+        <!-- Feedback ricevuti -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Feedback ricevuti</h2>
+                <div id="elencoFeedback">
+                    <p class="text-muted mb-0">Caricamento...</p>
+                </div>
             </div>
         </div>
-    </div>
+
+    </div><!-- fine sezioneProgram -->
+
+    <!-- Sezione visibile solo a nutrizionista/entrambi -->
+    <div id="sezionePiano" class="d-none">
+
+        <!-- Statistiche aggregate piani -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Attivita' dei clienti sui miei piani</h2>
+                <div id="elencoAttivitaPiani">
+                    <p class="text-muted mb-0">Caricamento...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aderenze individuali con dettaglio cliente -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Aderenze dei clienti</h2>
+                <div id="elencoAderenzeClienti">
+                    <p class="text-muted mb-0">Caricamento...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback ricevuti sui piani -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Feedback ricevuti sui piani</h2>
+                <div id="elencoFeedbackPiani">
+                    <p class="text-muted mb-0">Caricamento...</p>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- fine sezionePiano -->
 
 </div>
 
+<!-- Modale dettaglio sessione + info cliente (trainer) -->
+<div class="modal fade" id="modalDettaglioSessione" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettaglio sessione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalCorpoSessione"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale dettaglio aderenza + consiglio nutrizionista -->
+<div class="modal fade" id="modalDettaglioAderenza" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettaglio aderenza</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalCorpoAderenza"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/api.js"></script>
 <script src="js/professionista.js"></script>
 

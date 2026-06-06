@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Palestra digitale - Area cliente</title>
+    <title>Palestra digitale - Dashboard</title>
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="css/stile.css">
@@ -12,17 +12,27 @@
 
 <nav class="navbar navbar-expand bg-white border-bottom px-4">
     <span class="navbar-brand">Palestra digitale</span>
-    <span class="ms-auto me-3 text-muted">
-        Ciao <span id="nomeUtente"></span>
-    </span>
-    <button id="btnLogout" type="button" class="btn btn-outline-secondary btn-sm">
-        Esci
-    </button>
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <a href="catalogo-programmi.html" class="btn btn-sm btn-outline-primary">Catalogo programmi</a>
+        <a href="catalogo-piani.html" class="btn btn-sm btn-outline-primary">Catalogo piani</a>
+        <span class="text-muted">Ciao <span id="nomeUtente"></span></span>
+        <button id="btnLogout" type="button" class="btn btn-outline-secondary btn-sm">Esci</button>
+    </div>
 </nav>
 
 <div class="container py-4">
 
-    <h1 class="h3 mb-4">Area cliente</h1>
+    <h1 class="h3 mb-4">La mia dashboard</h1>
+
+    <!-- Informazioni utente -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Le mie informazioni</h2>
+            <div id="infoUtente">
+                <p class="text-muted mb-0">Caricamento...</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Programma corrente -->
     <div class="card mb-3">
@@ -44,6 +54,52 @@
         </div>
     </div>
 
+    <!-- Aderenza giornaliera al piano nutrizionale -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0">Aderenza al piano nutrizionale</h2>
+                <button id="btnNuovaAderenza" type="button" class="btn btn-sm btn-primary">
+                    Registra giornata
+                </button>
+            </div>
+
+            <!-- Form aderenza (nascosto) -->
+            <div id="cardFormAderenza" class="border rounded p-3 mb-3 d-none bg-light">
+                <form id="formAderenza">
+                    <p class="text-muted small mb-3">
+                        Indica in che percentuale hai seguito il tuo piano nutrizionale in questa giornata.
+                    </p>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small">Data</label>
+                            <input type="date" id="aderenzaData" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">
+                                Aderenza: <span id="aderenzaValoreLabel">100</span>%
+                            </label>
+                            <input type="range" id="aderenzaPercentuale" class="form-range" min="0" max="100" step="5" value="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Note (opzionale)</label>
+                            <input type="text" id="aderenzaNote" class="form-control form-control-sm" maxlength="300">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-sm btn-primary">Salva</button>
+                        <button type="button" id="btnAnnullaAderenza" class="btn btn-sm btn-outline-secondary">Annulla</button>
+                    </div>
+                    <p id="messaggioAderenza" class="text-danger small mt-2 mb-0"></p>
+                </form>
+            </div>
+
+            <div id="elencoAderenze">
+                <p class="text-muted mb-0">Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Sessioni di allenamento -->
     <div class="card mb-3">
         <div class="card-body">
@@ -57,29 +113,40 @@
             <!-- Form registrazione (nascosto all'avvio) -->
             <div id="cardFormSessione" class="border rounded p-3 mb-3 d-none bg-light">
                 <form id="formSessione">
+                    <p class="mb-2">
+                        <strong>Registrazione sessione del programma:</strong>
+                        <span id="sessioneNomeProgramma" class="text-primary"></span>
+                    </p>
+                    <p class="text-muted small mb-3">
+                        Spunta gli esercizi che hai effettivamente svolto.
+                        La sessione si considera "completata" se hai svolto tutti gli esercizi previsti.
+                    </p>
+
                     <div class="row g-2">
-                        <div class="col-md-3">
-                            <label class="form-label small">Data</label>
+                        <div class="col-md-4">
+                            <label class="form-label small">Data della sessione</label>
                             <input type="date" id="sessioneData" class="form-control form-control-sm" required>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label small">Durata (min)</label>
+                        <div class="col-md-4">
+                            <label class="form-label small">Durata totale (minuti)</label>
                             <input type="number" id="sessioneDurata" class="form-control form-control-sm" min="1" max="600" value="45" required>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label small">Stato</label>
-                            <select id="sessioneCompletata" class="form-select form-select-sm">
-                                <option value="true">Completata</option>
-                                <option value="false">Interrotta</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small">Note (opzionale)</label>
-                            <input type="text" id="sessioneNote" class="form-control form-control-sm" maxlength="300">
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label small mb-1">Esercizi svolti</label>
+                        <div id="sessioneEserciziSvolti" class="border rounded bg-white p-2">
+                            <!-- popolato da JS con checkbox per ogni esercizio del programma -->
                         </div>
                     </div>
+
                     <div class="mt-2">
-                        <button type="submit" class="btn btn-sm btn-primary">Salva</button>
+                        <label class="form-label small">Note (opzionale)</label>
+                        <input type="text" id="sessioneNote" class="form-control form-control-sm" maxlength="300" placeholder="Come ti sei sentito, eventuali variazioni...">
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-sm btn-primary">Registra sessione</button>
                         <button type="button" id="btnAnnullaSessione" class="btn btn-sm btn-outline-secondary">Annulla</button>
                     </div>
                     <p id="messaggioSessione" class="text-danger small mt-2 mb-0"></p>
@@ -92,68 +159,41 @@
         </div>
     </div>
 
-    <!-- Catalogo programmi -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <h2 class="h5 mb-3">Catalogo programmi</h2>
-
-            <div class="row g-2 mb-3">
-                <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">Obiettivo</label>
-                    <select id="filtroObiettivo" class="form-select form-select-sm">
-                        <option value="">Tutti</option>
-                        <option value="perdita_peso">Perdita peso</option>
-                        <option value="massa">Massa</option>
-                        <option value="mantenimento">Mantenimento</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">Difficolta'</label>
-                    <select id="filtroDifficolta" class="form-select form-select-sm">
-                        <option value="">Tutte</option>
-                        <option value="principiante">Principiante</option>
-                        <option value="intermedio">Intermedio</option>
-                        <option value="avanzato">Avanzato</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">Durata max (settimane)</label>
-                    <input type="number" id="filtroDurataMax" class="form-control form-control-sm" min="1">
-                </div>
-            </div>
-            <button id="btnApplicaFiltri" type="button" class="btn btn-sm btn-secondary mb-3">
-                Filtra
-            </button>
-
-            <div id="elencoCatalogo">
-                <p class="text-muted">Caricamento...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Catalogo piani nutrizionali -->
-    <div class="card">
-        <div class="card-body">
-            <h2 class="h5 mb-3">Catalogo piani nutrizionali</h2>
-
-            <div class="row g-2 mb-3">
-                <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">Calorie max</label>
-                    <input type="number" id="filtroCalorieMax" class="form-control form-control-sm" min="500">
-                </div>
-            </div>
-            <button id="btnApplicaFiltriPiani" type="button" class="btn btn-sm btn-secondary mb-3">
-                Filtra
-            </button>
-
-            <div id="elencoCatalogoPiani">
-                <p class="text-muted">Caricamento...</p>
-            </div>
-        </div>
-    </div>
-
 </div>
 
+<!-- Modale dettaglio sessione -->
+<div class="modal fade" id="modalDettaglioSessione" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettaglio sessione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalCorpoSessione"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale dettaglio aderenza -->
+<div class="modal fade" id="modalDettaglioAderenza" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettaglio giornata</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalCorpoAderenza"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/api.js"></script>
 <script src="js/cliente.js"></script>
 

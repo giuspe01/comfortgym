@@ -1,4 +1,7 @@
-// professionista.js - Dashboard professionista: gestione programmi e piani.
+// professionista.js - Dashboard professionista: attivita', sessioni/aderenze clienti, feedback.
+
+let modalSessione = null;
+let modalAderenza = null;
 
 window.addEventListener("DOMContentLoaded", async function () {
     const utente = await richiediUtente("professionista");
@@ -8,313 +11,40 @@ window.addEventListener("DOMContentLoaded", async function () {
     document.getElementById("specializzazione").textContent = utente.specializzazione || "";
     document.getElementById("btnLogout").addEventListener("click", logout);
 
-    // Programmi
-    document.getElementById("btnNuovoProgramma").addEventListener("click", apriFormNuovoProgramma);
-    document.getElementById("btnAnnullaProgramma").addEventListener("click", chiudiFormProgramma);
-    document.getElementById("btnAggiungiEsercizio").addEventListener("click", function () {
-        aggiungiRigaEsercizio();
-    });
-    document.getElementById("formProgramma").addEventListener("submit", salvaProgramma);
+    modalSessione = new bootstrap.Modal(document.getElementById("modalDettaglioSessione"));
+    modalAderenza = new bootstrap.Modal(document.getElementById("modalDettaglioAderenza"));
 
-    // Piani
-    document.getElementById("btnNuovoPiano").addEventListener("click", apriFormNuovoPiano);
-    document.getElementById("btnAnnullaPiano").addEventListener("click", chiudiFormPiano);
-    document.getElementById("btnAggiungiPasto").addEventListener("click", function () {
-        aggiungiRigaPasto();
-    });
-    document.getElementById("formPiano").addEventListener("submit", salvaPiano);
+    // Visibilita' sezioni in base alla specializzazione.
+    const spec = utente.specializzazione || "entrambi";
+    const mostraProgram = (spec === "trainer" || spec === "entrambi");
+    const mostraPiano   = (spec === "nutrizionista" || spec === "entrambi");
 
-    await caricaProgrammi();
-    await caricaPiani();
-    await caricaAttivita();
-    await caricaFeedback();
+    if (mostraProgram) {
+        document.getElementById("linkProgram").classList.remove("d-none");
+    }
+    if (mostraPiano) {
+        document.getElementById("linkPiani").classList.remove("d-none");
+    }
+    if (!mostraProgram) {
+        document.getElementById("sezioneProgram").classList.add("d-none");
+    }
+    if (mostraPiano) {
+        document.getElementById("sezionePiano").classList.remove("d-none");
+    }
+
+    if (mostraProgram) {
+        await caricaAttivita();
+        await caricaSessioniClienti();
+        await caricaFeedback();
+    }
+    if (mostraPiano) {
+        await caricaAttivitaPiani();
+        await caricaAderenzeClienti();
+        await caricaFeedbackPiani();
+    }
 });
 
-// =================== PROGRAMMI ===================
-
-async function caricaProgrammi() {
-    const cont = document.getElementById("elencoProgrammi");
-    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
-
-    const r = await apiGet("/api/professionista/programmi");
-    if (!r.ok) {
-        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
-        return;
-    }
-
-    const programmi = r.dati.programmi;
-    if (programmi.length === 0) {
-        cont.innerHTML = '<p class="text-muted mb-0">Non hai ancora creato programmi.</p>';
-        return;
-    }
-
-    let html = '<table class="table table-sm align-middle">';
-    html += '<thead><tr><th>Nome</th><th>Obiettivo</th><th>Difficolta\'</th><th>Durata</th><th></th></tr></thead><tbody>';
-    for (const p of programmi) {
-        html += '<tr>';
-        html += '<td>' + escapeHtml(p.nome) + '</td>';
-        html += '<td>' + escapeHtml(p.obiettivo) + '</td>';
-        html += '<td>' + escapeHtml(p.difficolta) + '</td>';
-        html += '<td>' + p.durataSettimane + ' sett.</td>';
-        html += '<td class="text-end">';
-        html += '<button class="btn btn-sm btn-outline-primary me-1" data-modProg="' + p.id + '">Modifica</button>';
-        html += '<button class="btn btn-sm btn-outline-danger" data-elimProg="' + p.id + '">Elimina</button>';
-        html += '</td>';
-        html += '</tr>';
-    }
-    html += '</tbody></table>';
-    cont.innerHTML = html;
-
-    cont.querySelectorAll("button[data-modProg]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-            apriFormModificaProgramma(parseInt(btn.getAttribute("data-modProg")));
-        });
-    });
-    cont.querySelectorAll("button[data-elimProg]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-            eliminaProgramma(parseInt(btn.getAttribute("data-elimProg")));
-        });
-    });
-}
-
-function apriFormNuovoProgramma() {
-    document.getElementById("titoloFormProgramma").textContent = "Nuovo programma";
-    document.getElementById("idProgramma").value = "";
-    document.getElementById("nomeProgramma").value = "";
-    document.getElementById("obiettivoProgramma").value = "perdita_peso";
-    document.getElementById("difficoltaProgramma").value = "principiante";
-    document.getElementById("durataProgramma").value = "4";
-    document.getElementById("righeEsercizi").innerHTML = "";
-    aggiungiRigaEsercizio();
-    nascondiMessaggioForm("messaggioFormProgramma");
-    document.getElementById("cardFormProgramma").classList.remove("d-none");
-    document.getElementById("cardFormProgramma").scrollIntoView({ behavior: "smooth" });
-}
-
-async function apriFormModificaProgramma(id) {
-    const r = await apiGet("/api/programmi/" + id);
-    if (!r.ok) { alert("Impossibile caricare il programma"); return; }
-    const p = r.dati.programma;
-    const esercizi = r.dati.esercizi;
-
-    document.getElementById("titoloFormProgramma").textContent = "Modifica programma";
-    document.getElementById("idProgramma").value = p.id;
-    document.getElementById("nomeProgramma").value = p.nome;
-    document.getElementById("obiettivoProgramma").value = p.obiettivo;
-    document.getElementById("difficoltaProgramma").value = p.difficolta;
-    document.getElementById("durataProgramma").value = p.durataSettimane;
-    document.getElementById("righeEsercizi").innerHTML = "";
-    for (const e of esercizi) aggiungiRigaEsercizio(e);
-    if (esercizi.length === 0) aggiungiRigaEsercizio();
-    nascondiMessaggioForm("messaggioFormProgramma");
-    document.getElementById("cardFormProgramma").classList.remove("d-none");
-    document.getElementById("cardFormProgramma").scrollIntoView({ behavior: "smooth" });
-}
-
-function chiudiFormProgramma() {
-    document.getElementById("cardFormProgramma").classList.add("d-none");
-}
-
-function aggiungiRigaEsercizio(es) {
-    const tbody = document.getElementById("righeEsercizi");
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm" data-campo="nome" value="' + (es ? escapeAttr(es.nome) : "") + '" maxlength="100"></td>' +
-        '<td><input type="number" class="form-control form-control-sm" data-campo="serie" min="1" max="20" value="' + (es ? es.serie : 3) + '"></td>' +
-        '<td><input type="number" class="form-control form-control-sm" data-campo="ripetizioni" min="1" max="100" value="' + (es ? es.ripetizioni : 10) + '"></td>' +
-        '<td><input type="number" class="form-control form-control-sm" data-campo="riposoSec" min="0" max="600" value="' + (es ? es.riposoSec : 60) + '"></td>' +
-        '<td><input type="text" class="form-control form-control-sm" data-campo="note" value="' + (es ? escapeAttr(es.note) : "") + '" maxlength="300"></td>' +
-        '<td><button type="button" class="btn btn-sm btn-outline-danger">-</button></td>';
-    tbody.appendChild(tr);
-    tr.querySelector("button").addEventListener("click", function () { tr.remove(); });
-}
-
-async function salvaProgramma(evento) {
-    evento.preventDefault();
-    const dati = {
-        nome: document.getElementById("nomeProgramma").value.trim(),
-        obiettivo: document.getElementById("obiettivoProgramma").value,
-        difficolta: document.getElementById("difficoltaProgramma").value,
-        durataSettimane: parseInt(document.getElementById("durataProgramma").value),
-        esercizi: leggiEserciziDalForm()
-    };
-
-    const id = document.getElementById("idProgramma").value;
-    const risposta = id
-        ? await apiPut("/api/programmi/" + id, dati)
-        : await apiPost("/api/programmi", dati);
-
-    if (!risposta.ok) {
-        mostraMessaggioForm("messaggioFormProgramma", risposta.dati.errore || "Errore", "danger");
-        return;
-    }
-    chiudiFormProgramma();
-    await caricaProgrammi();
-}
-
-function leggiEserciziDalForm() {
-    const righe = document.querySelectorAll("#righeEsercizi tr");
-    const esercizi = [];
-    righe.forEach(function (tr) {
-        const e = {
-            nome: tr.querySelector('[data-campo="nome"]').value.trim(),
-            serie: parseInt(tr.querySelector('[data-campo="serie"]').value) || 0,
-            ripetizioni: parseInt(tr.querySelector('[data-campo="ripetizioni"]').value) || 0,
-            riposoSec: parseInt(tr.querySelector('[data-campo="riposoSec"]').value) || 0,
-            note: tr.querySelector('[data-campo="note"]').value.trim()
-        };
-        if (e.nome.length > 0) esercizi.push(e);
-    });
-    return esercizi;
-}
-
-async function eliminaProgramma(id) {
-    if (!confirm("Eliminare definitivamente questo programma?")) return;
-    const r = await apiDelete("/api/programmi/" + id);
-    if (!r.ok) { alert(r.dati.errore || "Errore eliminazione"); return; }
-    await caricaProgrammi();
-}
-
-// =================== PIANI ===================
-
-async function caricaPiani() {
-    const cont = document.getElementById("elencoPiani");
-    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
-
-    const r = await apiGet("/api/professionista/piani");
-    if (!r.ok) {
-        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
-        return;
-    }
-
-    const piani = r.dati.piani;
-    if (piani.length === 0) {
-        cont.innerHTML = '<p class="text-muted mb-0">Non hai ancora creato piani.</p>';
-        return;
-    }
-
-    let html = '<table class="table table-sm align-middle">';
-    html += '<thead><tr><th>Nome</th><th>Calorie giornaliere</th><th></th></tr></thead><tbody>';
-    for (const p of piani) {
-        html += '<tr>';
-        html += '<td>' + escapeHtml(p.nome) + '</td>';
-        html += '<td>' + p.calorieGiornaliere + '</td>';
-        html += '<td class="text-end">';
-        html += '<button class="btn btn-sm btn-outline-primary me-1" data-modPiano="' + p.id + '">Modifica</button>';
-        html += '<button class="btn btn-sm btn-outline-danger" data-elimPiano="' + p.id + '">Elimina</button>';
-        html += '</td>';
-        html += '</tr>';
-    }
-    html += '</tbody></table>';
-    cont.innerHTML = html;
-
-    cont.querySelectorAll("button[data-modPiano]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-            apriFormModificaPiano(parseInt(btn.getAttribute("data-modPiano")));
-        });
-    });
-    cont.querySelectorAll("button[data-elimPiano]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-            eliminaPiano(parseInt(btn.getAttribute("data-elimPiano")));
-        });
-    });
-}
-
-function apriFormNuovoPiano() {
-    document.getElementById("titoloFormPiano").textContent = "Nuovo piano";
-    document.getElementById("idPiano").value = "";
-    document.getElementById("nomePiano").value = "";
-    document.getElementById("caloriePiano").value = "2000";
-    document.getElementById("righePasti").innerHTML = "";
-    aggiungiRigaPasto();
-    nascondiMessaggioForm("messaggioFormPiano");
-    document.getElementById("cardFormPiano").classList.remove("d-none");
-    document.getElementById("cardFormPiano").scrollIntoView({ behavior: "smooth" });
-}
-
-async function apriFormModificaPiano(id) {
-    const r = await apiGet("/api/piani/" + id);
-    if (!r.ok) { alert("Impossibile caricare il piano"); return; }
-    const p = r.dati.piano;
-    const pasti = r.dati.pasti;
-
-    document.getElementById("titoloFormPiano").textContent = "Modifica piano";
-    document.getElementById("idPiano").value = p.id;
-    document.getElementById("nomePiano").value = p.nome;
-    document.getElementById("caloriePiano").value = p.calorieGiornaliere;
-    document.getElementById("righePasti").innerHTML = "";
-    for (const pa of pasti) aggiungiRigaPasto(pa);
-    if (pasti.length === 0) aggiungiRigaPasto();
-    nascondiMessaggioForm("messaggioFormPiano");
-    document.getElementById("cardFormPiano").classList.remove("d-none");
-    document.getElementById("cardFormPiano").scrollIntoView({ behavior: "smooth" });
-}
-
-function chiudiFormPiano() {
-    document.getElementById("cardFormPiano").classList.add("d-none");
-}
-
-function aggiungiRigaPasto(pa) {
-    const tbody = document.getElementById("righePasti");
-    const tr = document.createElement("tr");
-    const tipo = pa ? pa.tipo : "colazione";
-    tr.innerHTML =
-        '<td><select class="form-select form-select-sm" data-campo="tipo">' +
-        '<option value="colazione"' + (tipo === "colazione" ? " selected" : "") + '>Colazione</option>' +
-        '<option value="pranzo"' + (tipo === "pranzo" ? " selected" : "") + '>Pranzo</option>' +
-        '<option value="cena"' + (tipo === "cena" ? " selected" : "") + '>Cena</option>' +
-        '<option value="spuntino"' + (tipo === "spuntino" ? " selected" : "") + '>Spuntino</option>' +
-        '</select></td>' +
-        '<td><input type="text" class="form-control form-control-sm" data-campo="descrizione" value="' + (pa ? escapeAttr(pa.descrizione) : "") + '" maxlength="300"></td>' +
-        '<td><input type="number" class="form-control form-control-sm" data-campo="calorie" min="0" max="3000" value="' + (pa ? pa.calorie : 400) + '"></td>' +
-        '<td><button type="button" class="btn btn-sm btn-outline-danger">-</button></td>';
-    tbody.appendChild(tr);
-    tr.querySelector("button").addEventListener("click", function () { tr.remove(); });
-}
-
-async function salvaPiano(evento) {
-    evento.preventDefault();
-    const dati = {
-        nome: document.getElementById("nomePiano").value.trim(),
-        calorieGiornaliere: parseInt(document.getElementById("caloriePiano").value),
-        pasti: leggiPastiDalForm()
-    };
-
-    const id = document.getElementById("idPiano").value;
-    const risposta = id
-        ? await apiPut("/api/piani/" + id, dati)
-        : await apiPost("/api/piani", dati);
-
-    if (!risposta.ok) {
-        mostraMessaggioForm("messaggioFormPiano", risposta.dati.errore || "Errore", "danger");
-        return;
-    }
-    chiudiFormPiano();
-    await caricaPiani();
-}
-
-function leggiPastiDalForm() {
-    const righe = document.querySelectorAll("#righePasti tr");
-    const pasti = [];
-    righe.forEach(function (tr) {
-        const p = {
-            tipo: tr.querySelector('[data-campo="tipo"]').value,
-            descrizione: tr.querySelector('[data-campo="descrizione"]').value.trim(),
-            calorie: parseInt(tr.querySelector('[data-campo="calorie"]').value) || 0
-        };
-        if (p.descrizione.length > 0) pasti.push(p);
-    });
-    return pasti;
-}
-
-async function eliminaPiano(id) {
-    if (!confirm("Eliminare definitivamente questo piano?")) return;
-    const r = await apiDelete("/api/piani/" + id);
-    if (!r.ok) { alert(r.dati.errore || "Errore eliminazione"); return; }
-    await caricaPiani();
-}
-
-// =================== ATTIVITA' ===================
+// =================== ATTIVITA' AGGREGATE ===================
 
 async function caricaAttivita() {
     const cont = document.getElementById("elencoAttivita");
@@ -333,11 +63,13 @@ async function caricaAttivita() {
     }
 
     let html = '<table class="table table-sm align-middle">';
-    html += '<thead><tr><th>Programma</th><th class="text-end">Sessioni totali</th><th class="text-end">Completate</th><th class="text-end">Adesione</th><th>Ultima sessione</th></tr></thead><tbody>';
+    html += '<thead><tr><th>Programma</th><th class="text-end">Sessioni</th>';
+    html += '<th class="text-end">Completate</th><th class="text-end">Adesione</th>';
+    html += '<th>Ultima sessione</th></tr></thead><tbody>';
     for (const r of righe) {
         const adesione = (r.totale > 0)
             ? Math.round((r.completate / r.totale) * 100) + "%"
-            : "-";
+            : "—";
         html += '<tr>';
         html += '<td>' + escapeHtml(r.nomeProgramma) + '</td>';
         html += '<td class="text-end">' + r.totale + '</td>';
@@ -348,6 +80,123 @@ async function caricaAttivita() {
     }
     html += '</tbody></table>';
     cont.innerHTML = html;
+}
+
+// =================== SESSIONI INDIVIDUALI ===================
+
+async function caricaSessioniClienti() {
+    const cont = document.getElementById("elencoSessioniClienti");
+    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
+
+    const r = await apiGet("/api/professionista/sessioni");
+    if (!r.ok) {
+        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
+        return;
+    }
+
+    const sessioni = r.dati.sessioni;
+    if (sessioni.length === 0) {
+        cont.innerHTML = '<p class="text-muted mb-0">Nessuna sessione registrata sui tuoi programmi.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-sm align-middle">';
+    html += '<thead><tr><th>Data</th><th>Cliente</th><th>Programma</th>';
+    html += '<th>Durata</th><th>Stato</th><th></th></tr></thead><tbody>';
+    for (const s of sessioni) {
+        html += '<tr>';
+        html += '<td>' + escapeHtml(s.data) + '</td>';
+        html += '<td>' + escapeHtml(s.nomeCliente) + '</td>';
+        html += '<td class="text-muted small">' + escapeHtml(s.nomeProgramma) + '</td>';
+        html += '<td>' + s.durataMin + ' min</td>';
+        if (s.completata) {
+            html += '<td><span class="badge bg-success">Completata</span></td>';
+        } else {
+            html += '<td><span class="badge bg-warning text-dark">Interrotta</span></td>';
+        }
+        html += '<td class="text-end"><button class="btn btn-sm btn-outline-secondary" ';
+        html += 'data-idx="' + sessioni.indexOf(s) + '">Dettaglio</button></td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+
+    // Mappa indice -> oggetto sessione per il modal.
+    cont.querySelectorAll("button[data-idx]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            apriDettaglioSessione(sessioni[parseInt(btn.getAttribute("data-idx"))]);
+        });
+    });
+}
+
+async function apriDettaglioSessione(s) {
+    const obiettivoLeggibile = {
+        perdita_peso: "Perdita peso",
+        massa: "Aumento massa",
+        mantenimento: "Mantenimento"
+    };
+
+    // ---- Sezione sessione ----
+    let html = '<h6 class="text-muted mb-2">Sessione</h6>';
+    html += '<dl class="row mb-3">';
+    html += '<dt class="col-4">Data</dt><dd class="col-8">' + escapeHtml(s.data) + '</dd>';
+    html += '<dt class="col-4">Programma</dt><dd class="col-8">' + escapeHtml(s.nomeProgramma) + '</dd>';
+    html += '<dt class="col-4">Durata</dt><dd class="col-8">' + s.durataMin + ' min</dd>';
+    html += '<dt class="col-4">Stato</dt><dd class="col-8">';
+    html += s.completata
+        ? '<span class="badge bg-success">Completata</span>'
+        : '<span class="badge bg-warning text-dark">Interrotta</span>';
+    html += '</dd>';
+    html += '<dt class="col-4">Note</dt><dd class="col-8">' + escapeHtml(s.note || "—") + '</dd>';
+    html += '</dl>';
+
+    // ---- Esercizi del programma ----
+    html += '<h6 class="text-muted mb-2">Esercizi del programma</h6>';
+    const r = await apiGet("/api/programmi/" + s.idProgramma);
+    if (!r.ok || r.dati.esercizi.length === 0) {
+        html += '<p class="text-muted small mb-3">Nessun esercizio definito nel programma.</p>';
+    } else {
+        html += '<table class="table table-sm mb-3">';
+        html += '<thead><tr><th>Esercizio</th><th>Serie</th><th>Rip.</th><th>Riposo</th><th>Note</th></tr></thead><tbody>';
+        for (const e of r.dati.esercizi) {
+            html += '<tr>';
+            html += '<td>' + escapeHtml(e.nome) + '</td>';
+            html += '<td>' + e.serie + '</td>';
+            html += '<td>' + e.ripetizioni + '</td>';
+            html += '<td>' + e.riposoSec + 's</td>';
+            html += '<td class="text-muted small">' + escapeHtml(e.note || "") + '</td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+    }
+
+    // ---- Bottone info cliente (nascosto di default) ----
+    html += '<button type="button" id="btnToggleCliente" class="btn btn-sm btn-outline-secondary mb-3">';
+    html += 'Mostra info cliente</button>';
+    html += '<div id="infoClienteDiv" class="d-none border rounded p-3 bg-light">';
+    html += '<h6 class="text-muted mb-2">Profilo cliente</h6>';
+    html += '<dl class="row mb-0">';
+    html += '<dt class="col-5">Nome</dt><dd class="col-7">' + escapeHtml(s.nomeCliente) + '</dd>';
+    html += '<dt class="col-5">Email</dt><dd class="col-7">' + escapeHtml(s.emailCliente) + '</dd>';
+    html += '<dt class="col-5">Eta\'</dt><dd class="col-7">' + (s.etaCliente || '—') + ' anni</dd>';
+    html += '<dt class="col-5">Peso</dt><dd class="col-7">' + (s.pesoCliente || '—') + ' kg</dd>';
+    html += '<dt class="col-5">Altezza</dt><dd class="col-7">' + (s.altezzaCliente || '—') + ' cm</dd>';
+    html += '<dt class="col-5">Obiettivo</dt><dd class="col-7">';
+    html += escapeHtml(obiettivoLeggibile[s.obiettivoCliente] || s.obiettivoCliente || '—');
+    html += '</dd>';
+    html += '</dl>';
+    html += '</div>';
+
+    document.getElementById("modalCorpoSessione").innerHTML = html;
+
+    document.getElementById("btnToggleCliente").addEventListener("click", function () {
+        const div = document.getElementById("infoClienteDiv");
+        const nascosto = div.classList.contains("d-none");
+        div.classList.toggle("d-none", !nascosto);
+        this.textContent = nascosto ? "Nascondi info cliente" : "Mostra info cliente";
+    });
+
+    modalSessione.show();
 }
 
 // =================== FEEDBACK ===================
@@ -389,19 +238,189 @@ function stelle(voto) {
     return s;
 }
 
-// ----- Helper messaggi e escaping -----
+// =================== SEZIONE NUTRIZIONISTA ===================
 
-function mostraMessaggioForm(idDiv, testo, tipo) {
-    const div = document.getElementById(idDiv);
-    div.textContent = testo;
-    div.className = "alert alert-" + tipo;
+// ---- Statistiche aggregate piani ----
+
+async function caricaAttivitaPiani() {
+    const cont = document.getElementById("elencoAttivitaPiani");
+    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
+
+    const r = await apiGet("/api/professionista/attivita-piani");
+    if (!r.ok) {
+        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
+        return;
+    }
+
+    const righe = r.dati.attivita;
+    if (righe.length === 0) {
+        cont.innerHTML = '<p class="text-muted mb-0">Nessun piano creato.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-sm align-middle">';
+    html += '<thead><tr><th>Piano</th><th class="text-end">Registrazioni</th>';
+    html += '<th class="text-end">Aderenza media</th><th>Ultima registrazione</th></tr></thead><tbody>';
+    for (const a of righe) {
+        html += '<tr>';
+        html += '<td>' + escapeHtml(a.nomePiano) + '</td>';
+        html += '<td class="text-end">' + a.totale + '</td>';
+        html += '<td class="text-end">' + (a.totale > 0 ? a.mediaPercentuale + "%" : "—") + '</td>';
+        html += '<td>' + escapeHtml(a.ultimaData || "—") + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    cont.innerHTML = html;
 }
 
-function nascondiMessaggioForm(idDiv) {
-    const div = document.getElementById(idDiv);
-    div.textContent = "";
-    div.className = "alert d-none";
+// ---- Aderenze individuali ----
+
+async function caricaAderenzeClienti() {
+    const cont = document.getElementById("elencoAderenzeClienti");
+    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
+
+    const r = await apiGet("/api/professionista/aderenze");
+    if (!r.ok) {
+        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
+        return;
+    }
+
+    const aderenze = r.dati.aderenze;
+    if (aderenze.length === 0) {
+        cont.innerHTML = '<p class="text-muted mb-0">Nessuna aderenza registrata sui tuoi piani.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-sm align-middle">';
+    html += '<thead><tr><th>Data</th><th>Cliente</th><th>Piano</th>';
+    html += '<th>Aderenza</th><th>Consiglio</th><th></th></tr></thead><tbody>';
+    for (const a of aderenze) {
+        html += '<tr>';
+        html += '<td>' + escapeHtml(a.data) + '</td>';
+        html += '<td>' + escapeHtml(a.nomeCliente) + '</td>';
+        html += '<td class="text-muted small">' + escapeHtml(a.nomePiano) + '</td>';
+        html += '<td>' + a.percentuale + '%</td>';
+        if (a.consiglioPro && a.consiglioPro.length > 0) {
+            html += '<td><span class="badge bg-success">Aggiunto</span></td>';
+        } else {
+            html += '<td><span class="badge bg-light text-muted border">—</span></td>';
+        }
+        html += '<td class="text-end"><button class="btn btn-sm btn-outline-secondary" ';
+        html += 'data-idxAder="' + aderenze.indexOf(a) + '">Dettaglio</button></td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+
+    cont.querySelectorAll("button[data-idxAder]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            apriDettaglioAderenza(aderenze[parseInt(btn.getAttribute("data-idxAder"))]);
+        });
+    });
 }
+
+async function apriDettaglioAderenza(a) {
+    let html = '<h6 class="text-muted mb-2">Dati registrazione</h6>';
+    html += '<dl class="row mb-3">';
+    html += '<dt class="col-4">Data</dt><dd class="col-8">' + escapeHtml(a.data) + '</dd>';
+    html += '<dt class="col-4">Piano</dt><dd class="col-8">' + escapeHtml(a.nomePiano) + '</dd>';
+    html += '<dt class="col-4">Aderenza</dt><dd class="col-8"><strong>' + a.percentuale + '%</strong></dd>';
+    html += '<dt class="col-4">Note cliente</dt><dd class="col-8">' + escapeHtml(a.note || "—") + '</dd>';
+    html += '</dl>';
+
+    // Consiglio attuale
+    html += '<h6 class="text-muted mb-2">Il tuo consiglio</h6>';
+    if (a.consiglioPro && a.consiglioPro.length > 0) {
+        html += '<div class="alert alert-success py-2 small mb-3">' + escapeHtml(a.consiglioPro) + '</div>';
+    } else {
+        html += '<p class="text-muted small mb-2">Nessun consiglio inserito per questa giornata.</p>';
+    }
+
+    // Form per aggiungere/modificare il consiglio
+    html += '<div class="mb-3">';
+    html += '<label class="form-label small">Aggiungi / modifica consiglio:</label>';
+    html += '<textarea id="inputConsiglio" class="form-control form-control-sm" rows="3" maxlength="300">';
+    html += escapeHtml(a.consiglioPro || "");
+    html += '</textarea>';
+    html += '</div>';
+    html += '<button id="btnSalvaConsiglio" class="btn btn-sm btn-primary me-2">Salva consiglio</button>';
+    html += '<p id="erroreConsiglio" class="text-danger small mt-2 mb-2"></p>';
+
+    // Info cliente (toggle)
+    html += '<button type="button" id="btnToggleCliente" class="btn btn-sm btn-outline-secondary mb-3">Mostra info cliente</button>';
+    html += '<div id="infoClienteDiv" class="d-none border rounded p-3 bg-light">';
+    html += '<h6 class="text-muted mb-2">Profilo cliente</h6>';
+    html += '<dl class="row mb-0">';
+    html += '<dt class="col-5">Nome</dt><dd class="col-7">' + escapeHtml(a.nomeCliente) + '</dd>';
+    html += '<dt class="col-5">Email</dt><dd class="col-7">' + escapeHtml(a.emailCliente) + '</dd>';
+    html += '<dt class="col-5">Eta\'</dt><dd class="col-7">' + (a.etaCliente || '—') + ' anni</dd>';
+    html += '<dt class="col-5">Peso</dt><dd class="col-7">' + (a.pesoCliente || '—') + ' kg</dd>';
+    html += '<dt class="col-5">Altezza</dt><dd class="col-7">' + (a.altezzaCliente || '—') + ' cm</dd>';
+    html += '</dl></div>';
+
+    document.getElementById("modalCorpoAderenza").innerHTML = html;
+
+    document.getElementById("btnToggleCliente").addEventListener("click", function () {
+        const div = document.getElementById("infoClienteDiv");
+        const nascosto = div.classList.contains("d-none");
+        div.classList.toggle("d-none", !nascosto);
+        this.textContent = nascosto ? "Nascondi info cliente" : "Mostra info cliente";
+    });
+
+    document.getElementById("btnSalvaConsiglio").addEventListener("click", async function () {
+        const consiglio = document.getElementById("inputConsiglio").value.trim();
+        const r = await apiPut("/api/professionista/aderenza/" + a.id + "/consiglio",
+                               { consiglio: consiglio });
+        if (!r.ok) {
+            document.getElementById("erroreConsiglio").textContent =
+                r.dati.errore || "Errore salvataggio";
+            return;
+        }
+        // Aggiorno il dato locale e ricarico la lista.
+        a.consiglioPro = consiglio;
+        document.getElementById("erroreConsiglio").textContent = "";
+        document.getElementById("erroreConsiglio").className = "text-success small mt-2 mb-2";
+        document.getElementById("erroreConsiglio").textContent = "Consiglio salvato.";
+        await caricaAderenzeClienti();
+    });
+
+    modalAderenza.show();
+}
+
+// ---- Feedback ricevuti sui piani ----
+
+async function caricaFeedbackPiani() {
+    const cont = document.getElementById("elencoFeedbackPiani");
+    cont.innerHTML = '<p class="text-muted">Caricamento...</p>';
+
+    const r = await apiGet("/api/professionista/feedback-piani");
+    if (!r.ok) {
+        cont.innerHTML = '<p class="text-danger">Errore caricamento.</p>';
+        return;
+    }
+
+    const elenco = r.dati.feedback;
+    if (elenco.length === 0) {
+        cont.innerHTML = '<p class="text-muted mb-0">Nessun feedback ricevuto sui piani.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-sm align-middle">';
+    html += '<thead><tr><th>Piano</th><th>Cliente</th><th>Voto</th><th>Commento</th><th>Data</th></tr></thead><tbody>';
+    for (const f of elenco) {
+        html += '<tr>';
+        html += '<td>' + escapeHtml(f.nomePiano) + '</td>';
+        html += '<td>' + escapeHtml(f.nomeCliente) + '</td>';
+        html += '<td>' + stelle(f.voto) + '</td>';
+        html += '<td>' + escapeHtml(f.commento || "") + '</td>';
+        html += '<td>' + escapeHtml(f.data) + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+}
+
+// ----- Helper -----
 
 function escapeHtml(s) {
     return String(s == null ? "" : s)
@@ -409,8 +428,4 @@ function escapeHtml(s) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
-}
-
-function escapeAttr(s) {
-    return escapeHtml(s);
 }

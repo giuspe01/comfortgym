@@ -102,13 +102,18 @@ int creaPiano(const nlohmann::json& dati, int idCreatore,
     }
 
     char nome[LUNG_NOME_PIANO];
+    char consigli[LUNG_CONSIGLI];
+    char immagine[LUNG_IMMAGINE_PIANO];
     leggiStringa(dati, "nome", nome, sizeof(nome));
+    leggiStringa(dati, "consigliGiornalieri", consigli, sizeof(consigli));
+    leggiStringa(dati, "immagine", immagine, sizeof(immagine));
     int calorie = leggiIntero(dati, "calorieGiornaliere");
 
     sqlite3_exec(g_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
 
     const char* sql =
-        "INSERT INTO piani (nome, calorie_giornaliere, id_creatore) VALUES (?, ?, ?);";
+        "INSERT INTO piani (nome, calorie_giornaliere, id_creatore, consigli_giornalieri, immagine) "
+        "VALUES (?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
         sqlite3_exec(g_db, "ROLLBACK;", NULL, NULL, NULL);
@@ -118,6 +123,8 @@ int creaPiano(const nlohmann::json& dati, int idCreatore,
     sqlite3_bind_text(stmt, 1, nome, -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 2, calorie);
     sqlite3_bind_int(stmt, 3, idCreatore);
+    sqlite3_bind_text(stmt, 4, consigli, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 5, immagine, -1, SQLITE_STATIC);
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
@@ -173,13 +180,18 @@ int aggiornaPiano(int idPiano, const nlohmann::json& dati,
     }
 
     char nome[LUNG_NOME_PIANO];
+    char consigli[LUNG_CONSIGLI];
+    char immagine[LUNG_IMMAGINE_PIANO];
     leggiStringa(dati, "nome", nome, sizeof(nome));
+    leggiStringa(dati, "consigliGiornalieri", consigli, sizeof(consigli));
+    leggiStringa(dati, "immagine", immagine, sizeof(immagine));
     int calorie = leggiIntero(dati, "calorieGiornaliere");
 
     sqlite3_exec(g_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
 
     const char* sqlUpd =
-        "UPDATE piani SET nome = ?, calorie_giornaliere = ? WHERE id = ?;";
+        "UPDATE piani SET nome = ?, calorie_giornaliere = ?, consigli_giornalieri = ?, "
+        "                 immagine = ? WHERE id = ?;";
     if (sqlite3_prepare_v2(g_db, sqlUpd, -1, &stmt, NULL) != SQLITE_OK) {
         sqlite3_exec(g_db, "ROLLBACK;", NULL, NULL, NULL);
         snprintf(msgErr, dimErr, "Errore interno (prepare update)");
@@ -187,7 +199,9 @@ int aggiornaPiano(int idPiano, const nlohmann::json& dati,
     }
     sqlite3_bind_text(stmt, 1, nome, -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 2, calorie);
-    sqlite3_bind_int(stmt, 3, idPiano);
+    sqlite3_bind_text(stmt, 3, consigli, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 4, immagine, -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 5, idPiano);
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     if (rc != SQLITE_DONE) {
@@ -265,7 +279,8 @@ int cancellaPiano(int idPiano, int idCreatore) {
 
 PianoNutrizionale* caricaPiano(int idPiano) {
     const char* sql =
-        "SELECT id, nome, calorie_giornaliere, id_creatore FROM piani WHERE id = ?;";
+        "SELECT id, nome, calorie_giornaliere, id_creatore, consigli_giornalieri, immagine "
+        "FROM piani WHERE id = ?;";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
         return NULL;
@@ -281,6 +296,8 @@ PianoNutrizionale* caricaPiano(int idPiano) {
     copiaColonnaTesto(stmt, 1, p->nome, sizeof(p->nome));
     p->calorieGiornaliere = sqlite3_column_int(stmt, 2);
     p->idCreatore = sqlite3_column_int(stmt, 3);
+    copiaColonnaTesto(stmt, 4, p->consigliGiornalieri, sizeof(p->consigliGiornalieri));
+    copiaColonnaTesto(stmt, 5, p->immagine, sizeof(p->immagine));
 
     sqlite3_finalize(stmt);
     return p;
@@ -315,8 +332,8 @@ int caricaPasti(int idPiano, Pasto* dest, int maxNum) {
 // ----- listaPiani -----
 
 int listaPiani(PianoNutrizionale* dest, int maxNum, int calorieMax) {
-    char sql[400];
-    strcpy(sql, "SELECT id, nome, calorie_giornaliere, id_creatore FROM piani WHERE 1=1");
+    char sql[500];
+    strcpy(sql, "SELECT id, nome, calorie_giornaliere, id_creatore, immagine FROM piani WHERE 1=1");
     if (calorieMax > 0) {
         strcat(sql, " AND calorie_giornaliere <= ?");
     }
@@ -337,6 +354,7 @@ int listaPiani(PianoNutrizionale* dest, int maxNum, int calorieMax) {
         copiaColonnaTesto(stmt, 1, p.nome, sizeof(p.nome));
         p.calorieGiornaliere = sqlite3_column_int(stmt, 2);
         p.idCreatore = sqlite3_column_int(stmt, 3);
+        copiaColonnaTesto(stmt, 4, p.immagine, sizeof(p.immagine));
         n++;
     }
     sqlite3_finalize(stmt);
@@ -347,7 +365,7 @@ int listaPiani(PianoNutrizionale* dest, int maxNum, int calorieMax) {
 
 int listaPianiDelCreatore(int idCreatore, PianoNutrizionale* dest, int maxNum) {
     const char* sql =
-        "SELECT id, nome, calorie_giornaliere, id_creatore FROM piani "
+        "SELECT id, nome, calorie_giornaliere, id_creatore, immagine FROM piani "
         "WHERE id_creatore = ? ORDER BY id DESC;";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -362,6 +380,7 @@ int listaPianiDelCreatore(int idCreatore, PianoNutrizionale* dest, int maxNum) {
         copiaColonnaTesto(stmt, 1, p.nome, sizeof(p.nome));
         p.calorieGiornaliere = sqlite3_column_int(stmt, 2);
         p.idCreatore = sqlite3_column_int(stmt, 3);
+        copiaColonnaTesto(stmt, 4, p.immagine, sizeof(p.immagine));
         n++;
     }
     sqlite3_finalize(stmt);

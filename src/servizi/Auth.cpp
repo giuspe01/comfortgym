@@ -78,6 +78,23 @@ int registra(const nlohmann::json& dati, char* msgErrore, int dimErr) {
         return 0;
     }
 
+    // Verifica unicita' della email (anche se username e' diverso).
+    {
+        const char* sqlEmail = "SELECT id FROM utenti WHERE email = ?;";
+        sqlite3_stmt* stmt;
+        if (sqlite3_prepare_v2(g_db, sqlEmail, -1, &stmt, NULL) != SQLITE_OK) {
+            snprintf(msgErrore, dimErr, "Errore interno");
+            return 0;
+        }
+        sqlite3_bind_text(stmt, 1, email, -1, SQLITE_STATIC);
+        int emailEsiste = (sqlite3_step(stmt) == SQLITE_ROW);
+        sqlite3_finalize(stmt);
+        if (emailEsiste) {
+            snprintf(msgErrore, dimErr, "Email gia' registrata");
+            return 0;
+        }
+    }
+
     char hash[LUNGHEZZA_HASH];
     hashPassword(password, hash);
 
@@ -333,4 +350,56 @@ void rimuoviSessione(const char* token) {
     sqlite3_bind_text(stmt, 1, token, -1, SQLITE_STATIC);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
+}
+
+int aggiornaProfilo(int idCliente, const nlohmann::json& dati, char* msgErr, int dimErr) {
+    if (!dati.contains("eta") || !dati["eta"].is_number()) {
+        snprintf(msgErr, dimErr, "eta mancante");
+        return 0;
+    }
+    if (!dati.contains("peso") || !dati["peso"].is_number()) {
+        snprintf(msgErr, dimErr, "peso mancante");
+        return 0;
+    }
+    if (!dati.contains("altezza") || !dati["altezza"].is_number()) {
+        snprintf(msgErr, dimErr, "altezza mancante");
+        return 0;
+    }
+
+    int eta = dati["eta"].get<int>();
+    double peso = dati["peso"].get<double>();
+    double altezza = dati["altezza"].get<double>();
+
+    if (eta < 14 || eta > 100) {
+        snprintf(msgErr, dimErr, "Eta' fuori range (14-100)");
+        return 0;
+    }
+    if (peso < 30.0 || peso > 250.0) {
+        snprintf(msgErr, dimErr, "Peso fuori range (30-250 kg)");
+        return 0;
+    }
+    if (altezza < 120.0 || altezza > 230.0) {
+        snprintf(msgErr, dimErr, "Altezza fuori range (120-230 cm)");
+        return 0;
+    }
+
+    const char* sql =
+        "UPDATE utenti SET eta = ?, peso = ?, altezza = ? "
+        "WHERE id = ? AND tipo = 'cliente';";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        snprintf(msgErr, dimErr, "Errore interno");
+        return 0;
+    }
+    sqlite3_bind_int(stmt, 1, eta);
+    sqlite3_bind_double(stmt, 2, peso);
+    sqlite3_bind_double(stmt, 3, altezza);
+    sqlite3_bind_int(stmt, 4, idCliente);
+    int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) {
+        snprintf(msgErr, dimErr, "Errore aggiornamento profilo");
+        return 0;
+    }
+    return 1;
 }

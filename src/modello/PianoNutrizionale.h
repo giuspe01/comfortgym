@@ -8,6 +8,8 @@
 #define LUNG_NOME_PIANO     100
 #define LUNG_TIPO_PASTO      32       // "colazione" | "pranzo" | "cena" | "spuntino"
 #define LUNG_DESCRIZIONE    300
+#define LUNG_CONSIGLI       500
+#define LUNG_IMMAGINE_PIANO 500       // URL immagine
 
 #define MAX_PASTI_PER_PIANO  20
 
@@ -29,6 +31,8 @@ public:
     char nome[LUNG_NOME_PIANO];
     int calorieGiornaliere;
     int idCreatore;
+    char consigliGiornalieri[LUNG_CONSIGLI];
+    char immagine[LUNG_IMMAGINE_PIANO];  // URL opzionale
 
     PianoNutrizionale();
     nlohmann::json toJson() const;
