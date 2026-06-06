@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <filesystem>
 
 #include "httplib.h"
 
@@ -28,8 +29,11 @@ int main() {
     // Inizializza il generatore di numeri casuali (usato per i token di sessione).
     srand((unsigned int)time(NULL));
 
+    // Crea la cartella per il database se non esiste gia'.
+    std::filesystem::create_directories("data");
+
     // Crea la cartella per le immagini caricate se non esiste gia'.
-    system("mkdir public\\uploads 2>nul");
+    std::filesystem::create_directories("public/uploads");
 
     // Apertura del database (e creazione automatica dello schema se serve).
     if (!apriDatabase(PERCORSO_DB)) {
