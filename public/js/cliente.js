@@ -337,7 +337,16 @@ async function caricaSessioni() {
         return;
     }
 
-    let html = '<table class="table table-sm align-middle">';
+    // Riepilogo adesione: quante sessioni e quante completate.
+    const totali = sessioni.length;
+    const completate = sessioni.filter(function (s) { return s.completata; }).length;
+    const adesione = Math.round((completate / totali) * 100);
+
+    let html = '<div class="alert alert-info py-2 mb-3">';
+    html += '<strong>Riepilogo:</strong> ' + completate + ' sessioni completate su ' + totali;
+    html += ' (' + adesione + '% di adesione)';
+    html += '</div>';
+    html += '<table class="table table-sm align-middle">';
     html += '<thead><tr><th>Data</th><th>Durata</th><th>Stato</th><th>Note</th><th></th></tr></thead><tbody>';
     for (const s of sessioni) {
         html += '<tr>';

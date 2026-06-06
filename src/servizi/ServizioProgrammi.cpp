@@ -259,18 +259,49 @@ int aggiornaProgramma(int idProgramma, const nlohmann::json& dati,
 // ----- cancellaProgramma -----
 
 int cancellaProgramma(int idProgramma, int idCreatore) {
-    const char* sql = "DELETE FROM programmi WHERE id = ? AND id_creatore = ?;";
+    // Verifica ownership prima di toccare il DB.
+    const char* sqlCheck = "SELECT id_creatore FROM programmi WHERE id = ?;";
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(g_db, sqlCheck, -1, &stmt, NULL) != SQLITE_OK) {
         return 0;
     }
     sqlite3_bind_int(stmt, 1, idProgramma);
-    sqlite3_bind_int(stmt, 2, idCreatore);
-    int rc = sqlite3_step(stmt);
-    int righeCancellate = sqlite3_changes(g_db);
+    int proprietario = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        proprietario = sqlite3_column_int(stmt, 0);
+    }
     sqlite3_finalize(stmt);
+    if (proprietario != idCreatore) {
+        return 0;   // non e' tuo o non esiste
+    }
 
-    return (rc == SQLITE_DONE && righeCancellate > 0) ? 1 : 0;
+    // Transazione: ripulisce tutti i riferimenti, poi cancella.
+    // (sessioni e feedback hanno FK verso programmi senza CASCADE, vanno
+    // ripuliti prima; gli esercizi cascadano.)
+    sqlite3_exec(g_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+
+    const char* cleanup[] = {
+        "DELETE FROM feedback WHERE id_programma = ?;",
+        "DELETE FROM sessioni WHERE id_programma = ?;",
+        "UPDATE utenti SET id_programma_corrente = 0 WHERE id_programma_corrente = ?;",
+        "DELETE FROM programmi WHERE id = ?;"
+    };
+    for (int i = 0; i < 4; i++) {
+        if (sqlite3_prepare_v2(g_db, cleanup[i], -1, &stmt, NULL) != SQLITE_OK) {
+            sqlite3_exec(g_db, "ROLLBACK;", NULL, NULL, NULL);
+            return 0;
+        }
+        sqlite3_bind_int(stmt, 1, idProgramma);
+        int rc = sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+        if (rc != SQLITE_DONE) {
+            sqlite3_exec(g_db, "ROLLBACK;", NULL, NULL, NULL);
+            return 0;
+        }
+    }
+
+    sqlite3_exec(g_db, "COMMIT;", NULL, NULL, NULL);
+    return 1;
 }
 
 // ----- caricaProgramma -----

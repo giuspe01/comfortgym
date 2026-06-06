@@ -84,7 +84,34 @@ int registra(const nlohmann::json& dati, char* msgErrore, int dimErr) {
     char dataOggiStr[11];
     dataOggi(dataOggiStr);
 
-    // Specializzazione: default "trainer" se non valida (usata solo se tipo=professionista).
+    // Campi specifici per il cliente (validati ai limiti).
+    int eta = 0;
+    double peso = 0.0;
+    double altezza = 0.0;
+    char obiettivo[LUNG_TIPO];
+    obiettivo[0] = '\0';
+    if (strcmp(tipo, "cliente") == 0) {
+        if (dati.contains("eta") && dati["eta"].is_number()) {
+            eta = dati["eta"].get<int>();
+            if (eta < 14 || eta > 100) eta = 0;
+        }
+        if (dati.contains("peso") && dati["peso"].is_number()) {
+            peso = dati["peso"].get<double>();
+            if (peso < 30 || peso > 250) peso = 0.0;
+        }
+        if (dati.contains("altezza") && dati["altezza"].is_number()) {
+            altezza = dati["altezza"].get<double>();
+            if (altezza < 120 || altezza > 230) altezza = 0.0;
+        }
+        leggiStringa(dati, "obiettivo", obiettivo, sizeof(obiettivo));
+        if (strcmp(obiettivo, "perdita_peso") != 0
+            && strcmp(obiettivo, "massa") != 0
+            && strcmp(obiettivo, "mantenimento") != 0) {
+            strcpy(obiettivo, "mantenimento");   // default
+        }
+    }
+
+    // Specializzazione (solo per professionista). Default "trainer" se non valida.
     char specializzazione[LUNG_TIPO];
     leggiStringa(dati, "specializzazione", specializzazione, sizeof(specializzazione));
     if (strcmp(specializzazione, "trainer") != 0
@@ -96,8 +123,10 @@ int registra(const nlohmann::json& dati, char* msgErrore, int dimErr) {
     // Prepared statement: previene SQL injection.
     const char* sql =
         "INSERT INTO utenti (username, password_hash, nome, cognome, email,"
-        "                    data_registrazione, tipo, specializzazione) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+        "                    data_registrazione, tipo, "
+        "                    eta, peso, altezza, obiettivo, "
+        "                    specializzazione) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -112,10 +141,25 @@ int registra(const nlohmann::json& dati, char* msgErrore, int dimErr) {
     sqlite3_bind_text(stmt, 5, email, -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 6, dataOggiStr, -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 7, tipo, -1, SQLITE_STATIC);
-    if (strcmp(tipo, "professionista") == 0) {
-        sqlite3_bind_text(stmt, 8, specializzazione, -1, SQLITE_STATIC);
+
+    // Posizioni 8-11: campi del cliente. NULL per professionista.
+    if (strcmp(tipo, "cliente") == 0) {
+        sqlite3_bind_int(stmt, 8, eta);
+        sqlite3_bind_double(stmt, 9, peso);
+        sqlite3_bind_double(stmt, 10, altezza);
+        sqlite3_bind_text(stmt, 11, obiettivo, -1, SQLITE_STATIC);
     } else {
         sqlite3_bind_null(stmt, 8);
+        sqlite3_bind_null(stmt, 9);
+        sqlite3_bind_null(stmt, 10);
+        sqlite3_bind_null(stmt, 11);
+    }
+
+    // Posizione 12: specializzazione del professionista. NULL per cliente.
+    if (strcmp(tipo, "professionista") == 0) {
+        sqlite3_bind_text(stmt, 12, specializzazione, -1, SQLITE_STATIC);
+    } else {
+        sqlite3_bind_null(stmt, 12);
     }
 
     int rc = sqlite3_step(stmt);

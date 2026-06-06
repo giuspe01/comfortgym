@@ -222,17 +222,43 @@ int aggiornaPiano(int idPiano, const nlohmann::json& dati,
 // ----- cancellaPiano -----
 
 int cancellaPiano(int idPiano, int idCreatore) {
-    const char* sql = "DELETE FROM piani WHERE id = ? AND id_creatore = ?;";
+    // Verifica ownership.
+    const char* sqlCheck = "SELECT id_creatore FROM piani WHERE id = ?;";
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(g_db, sqlCheck, -1, &stmt, NULL) != SQLITE_OK) {
         return 0;
     }
     sqlite3_bind_int(stmt, 1, idPiano);
-    sqlite3_bind_int(stmt, 2, idCreatore);
-    int rc = sqlite3_step(stmt);
-    int righeCancellate = sqlite3_changes(g_db);
+    int proprietario = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        proprietario = sqlite3_column_int(stmt, 0);
+    }
     sqlite3_finalize(stmt);
-    return (rc == SQLITE_DONE && righeCancellate > 0) ? 1 : 0;
+    if (proprietario != idCreatore) return 0;
+
+    // Transazione: ripulisce i riferimenti, poi cancella (pasti cascadano).
+    sqlite3_exec(g_db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+
+    const char* cleanup[] = {
+        "UPDATE utenti SET id_piano_corrente = 0 WHERE id_piano_corrente = ?;",
+        "DELETE FROM piani WHERE id = ?;"
+    };
+    for (int i = 0; i < 2; i++) {
+        if (sqlite3_prepare_v2(g_db, cleanup[i], -1, &stmt, NULL) != SQLITE_OK) {
+            sqlite3_exec(g_db, "ROLLBACK;", NULL, NULL, NULL);
+            return 0;
+        }
+        sqlite3_bind_int(stmt, 1, idPiano);
+        int rc = sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+        if (rc != SQLITE_DONE) {
+            sqlite3_exec(g_db, "ROLLBACK;", NULL, NULL, NULL);
+            return 0;
+        }
+    }
+
+    sqlite3_exec(g_db, "COMMIT;", NULL, NULL, NULL);
+    return 1;
 }
 
 // ----- caricaPiano -----

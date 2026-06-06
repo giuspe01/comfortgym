@@ -12,6 +12,13 @@ window.addEventListener("DOMContentLoaded", async function () {
     }
 });
 
+// Mostra/nasconde i campi specifici al cambiare del tipo di account.
+document.getElementById("regTipo").addEventListener("change", function () {
+    const tipo = this.value;
+    document.getElementById("campiCliente").classList.toggle("d-none", tipo !== "cliente");
+    document.getElementById("campiProfessionista").classList.toggle("d-none", tipo !== "professionista");
+});
+
 // Mostra solo uno dei due form, nasconde l'altro.
 // Aggiorna anche lo stile dei bottoni in alto (quale tab e' attiva).
 function mostraForm(quale) {
@@ -67,14 +74,25 @@ document.getElementById("formAccedi").addEventListener("submit", async function 
 document.getElementById("formRegistrati").addEventListener("submit", async function (evento) {
     evento.preventDefault();
 
+    const tipo = document.getElementById("regTipo").value;
     const dati = {
-        tipo: document.getElementById("regTipo").value,
+        tipo: tipo,
         nome: document.getElementById("regNome").value,
         cognome: document.getElementById("regCognome").value,
         email: document.getElementById("regEmail").value,
         username: document.getElementById("regUsername").value,
         password: document.getElementById("regPassword").value
     };
+
+    // Campi specifici per ruolo.
+    if (tipo === "cliente") {
+        dati.eta = parseInt(document.getElementById("regEta").value);
+        dati.peso = parseFloat(document.getElementById("regPeso").value);
+        dati.altezza = parseFloat(document.getElementById("regAltezza").value);
+        dati.obiettivo = document.getElementById("regObiettivo").value;
+    } else {
+        dati.specializzazione = document.getElementById("regSpecializzazione").value;
+    }
 
     const r = await apiPost("/api/auth/register", dati);
     if (!r.ok) {
